@@ -45,12 +45,12 @@
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/firestore-helper.git"
+    "url": "git+https://github.com/Orange4Broom/firestore-helper.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/firestore-helper/issues"
+    "url": "https://github.com/Orange4Broom/firestore-helper/issues"
   },
-  "homepage": "https://github.com/yourusername/firestore-helper#readme",
+  "homepage": "https://github.com/Orange4Broom/firestore-helper#readme",
   "devDependencies": {
     "@babel/core": "^7.23.7",
     "@babel/preset-env": "^7.23.7",
