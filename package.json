@@ -1,7 +1,7 @@
 {
-  "name": "firestore-helper",
-  "version": "1.0.0",
-  "description": "Helper utilities for Firebase Firestore",
+  "name": "firestore-helper-ts",
+  "version": "1.1.0",
+  "description": "A simple library for working with Firebase Firestore in TypeScript/JavaScript applications",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -17,7 +17,8 @@
   "files": [
     "dist",
     "index.d.ts",
-    "LICENSE"
+    "LICENSE",
+    "README.md"
   ],
   "scripts": {
     "build": "tsc",
@@ -25,14 +26,18 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "rm -rf dist",
     "prebuild": "npm run clean",
-    "prepublishOnly": "npm run build",
-    "publish": "npm publish"
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "firebase",
     "firestore",
     "helper",
-    "utilities"
+    "utilities",
+    "typescript",
+    "database",
+    "crud",
+    "cloud",
+    "nosql"
   ],
   "author": "",
   "license": "ISC",

@@ -9,12 +9,15 @@ export {
   resetFirebase as reset,
 } from "./core/firebase";
 
+// Přímý export funkcí pro práci s Firestore
+export { getData, updateData, createData, deleteData } from "./core/operations";
+
+// Alias exporty pro kompatibilitu a přehlednost
 export {
   getData as get,
   updateData as update,
   createData as create,
-  deleteData as delete,
-  // Pro lepší kompatibilitu s TypeScript a ESM
+  // Pro lepší kompatibilitu s TypeScript a ESM používáme removeDoc místo delete (které je rezervované klíčové slovo)
   deleteData as removeDoc,
 } from "./core/operations";
 
@@ -40,18 +43,6 @@ const FirestoreHelper = {
   removeDoc: deleteData,
   formatDocument,
   formatCollection,
-};
-
-// Pro lepší kompatibilitu se staršími verzemi a různými importovacími systémy
-// Pokud někdo importuje jako require('firestore-helper').initialize
-// Kvůli ESM a CommonJS kompatibilitě
-export {
-  initializeFirebase,
-  resetFirebase,
-  getData,
-  updateData,
-  createData,
-  deleteData,
 };
 
 // Hlavní export

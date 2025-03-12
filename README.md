@@ -1,25 +1,201 @@
-# Firestore Helper
+# Firestore Helper TS
 
-Jednoduchý a flexibilní nástroj pro práci s Firebase Firestore. Tento balíček poskytuje sadu funkcí pro snadné čtení, zápis, aktualizaci a mazání dat z Firestore databáze s podporou TypeScript.
+A simple library for working with Firebase Firestore in TypeScript/JavaScript applications.
 
-## Instalace
+[![npm version](https://img.shields.io/npm/v/firestore-helper-ts.svg)](https://www.npmjs.com/package/firestore-helper-ts)
+
+## 🚀 Installation
 
 ```bash
 # NPM
-npm install firestore-helper
+npm install firestore-helper-ts
 
-# YARN
-yarn add firestore-helper
+# Yarn
+yarn add firestore-helper-ts
 
 # PNPM
-pnpm add firestore-helper
+pnpm add firestore-helper-ts
 ```
 
-## Základní použití
+## 🔑 Key Features
 
-Balíček můžete používat dvěma způsoby:
+- ✅ **Type-safe** - full TypeScript support
+- ✅ **Simple API** - intuitive functions for common operations
+- ✅ **Flexible** - support for querying, filtering, sorting
+- ✅ **Consistent error handling** - unified result format
 
-### 1. Pomocí jednotlivých funkcí (doporučeno)
+## 📚 Quick Start
+
+### 1. Initialize Firebase
+
+```typescript
+import { initialize } from "firestore-helper-ts";
+
+// At the beginning of your application
+initialize({
+  apiKey: "YOUR_API_KEY",
+  authDomain: "your-project.firebaseapp.com",
+  projectId: "your-project",
+  // other configuration...
+});
+```
+
+### 2. Create a Document
+
+```typescript
+import { create } from "firestore-helper-ts";
+
+// Creates a document with automatically generated ID
+const result = await create({
+  path: "users", // path to collection
+  data: {
+    name: "John Smith",
+    email: "john@example.com",
+    age: 32,
+    isActive: true,
+  },
+});
+
+// You get back data including the ID
+const userId = result.data?.id;
+console.log(`New user created with ID: ${userId}`);
+```
+
+### 3. Retrieving Data
+
+```typescript
+import { get } from "firestore-helper-ts";
+
+// Get a single document
+const userResult = await get({
+  path: "users",
+  docId: "abc123", // document ID
+});
+
+if (userResult.data) {
+  console.log(`Name: ${userResult.data.name}`);
+}
+
+// Get an entire collection with filters and sorting
+const activeUsersResult = await get({
+  path: "users",
+  where: [
+    ["isActive", "==", true], // First filter
+    ["age", ">", 25], // Second filter
+  ],
+  orderBy: [
+    ["createdAt", "desc"], // Sort by creation date descending
+  ],
+  limit: 10, // Limit number of results
+});
+
+// Process results
+activeUsersResult.data?.forEach((user) => {
+  console.log(`${user.name} (${user.email})`);
+});
+```
+
+### 4. Updating a Document
+
+```typescript
+import { update } from "firestore-helper-ts";
+
+// Update document
+await update({
+  path: "users",
+  docId: "abc123",
+  data: {
+    age: 33,
+    lastLogin: new Date(),
+  },
+  merge: true, // Merge with existing data (default)
+  refetch: true, // Return updated data
+});
+```
+
+### 5. Deleting a Document
+
+```typescript
+import { removeDoc } from "firestore-helper-ts";
+
+// Delete document
+await removeDoc({
+  path: "users",
+  docId: "abc123",
+});
+```
+
+## 🔄 Different Import Methods
+
+The library offers flexibility when importing functions:
+
+### Standard Function Names
+
+```typescript
+import {
+  getData,
+  updateData,
+  createData,
+  deleteData,
+} from "firestore-helper-ts";
+
+// Usage
+const result = await getData({ path: "users", docId: "abc123" });
+```
+
+### Short Aliases (recommended)
+
+```typescript
+import { get, update, create, removeDoc } from "firestore-helper-ts";
+
+// Usage
+const result = await get({ path: "users", docId: "abc123" });
+```
+
+### As an Object
+
+```typescript
+import FirestoreHelper from "firestore-helper-ts";
+
+// Usage
+const result = await FirestoreHelper.get({ path: "users", docId: "abc123" });
+```
+
+## 🦺 TypeScript Support
+
+With TypeScript, you can define types for your data:
+
+```typescript
+import { get, create } from "firestore-helper-ts";
+
+// Type definition
+interface User {
+  id?: string;
+  name: string;
+  email: string;
+  isPremium: boolean;
+  createdAt: Date;
+}
+
+// Using generic types
+const result = await get<User>({
+  path: "users",
+  docId: "abc123",
+});
+
+// result.data will be typed as User | null
+if (result.data) {
+  const user = result.data;
+  console.log(`Name: ${user.name}`);
+
+  // TypeScript checks types!
+  if (user.isPremium) {
+    // ...
+  }
+}
+```
+
+## 📋 Complete CRUD Application Example
 
 ```typescript
 import {
@@ -27,154 +203,153 @@ import {
   get,
   create,
   update,
-  removeDoc, // Použijte removeDoc místo 'delete' (což je rezervované klíčové slovo)
-} from "firestore-helper";
+  removeDoc,
+  Result,
+} from "firestore-helper-ts";
 
-// Inicializace
-initialize({
-  apiKey: "YOUR_API_KEY",
-  // další konfigurace...
-});
-
-// Získání dat
-const result = await get({ path: "users", docId: "user123" });
-
-// Vytvoření dokumentu
-const newDoc = await create({
-  path: "products",
-  data: { name: "Nový produkt" },
-});
-
-// Smazání dokumentu
-await removeDoc({ path: "users", docId: "user123" });
-```
-
-### 2. Pomocí objektu FirestoreHelper
-
-```typescript
-import FirestoreHelper from "firestore-helper";
-
-// Inicializace
-FirestoreHelper.initialize({
-  apiKey: "YOUR_API_KEY",
-  // další konfigurace...
-});
-
-// Získání dat
-const result = await FirestoreHelper.get({ path: "users", docId: "user123" });
-
-// Pro smazání dokumentu můžete použít removeDoc jako alternativu k delete
-await FirestoreHelper.removeDoc({ path: "users", docId: "user123" });
-// NEBO
-await FirestoreHelper.delete({ path: "users", docId: "user123" });
-```
-
-## Typy (TypeScript)
-
-Balíček plně podporuje TypeScript, což umožňuje silné typování vašich dat:
-
-```typescript
-interface User {
+// Type definitions
+interface Product {
   id?: string;
   name: string;
-  email: string;
-  age: number;
+  price: number;
+  stock: number;
+  categories: string[];
 }
 
-// Získání dat s typem
-const result = await get<User>({
-  path: "users",
-  docId: "user123",
+// Initialize Firebase
+initialize({
+  /* configuration */
 });
 
-// Typ result.data bude User | null
-if (result.data) {
-  const user = result.data;
-  console.log(`Jméno: ${user.name}, Věk: ${user.age}`);
+// Create product
+async function createProduct(
+  productData: Omit<Product, "id">
+): Promise<string | null> {
+  const result = await create<Product>({
+    path: "products",
+    data: productData,
+  });
+
+  return result.data?.id || null;
+}
+
+// Get product by ID
+async function getProduct(productId: string): Promise<Product | null> {
+  const result = await get<Product>({
+    path: "products",
+    docId: productId,
+  });
+
+  return result.data;
+}
+
+// Get products by category
+async function getProductsByCategory(category: string): Promise<Product[]> {
+  const result = await get<Product[]>({
+    path: "products",
+    where: [["categories", "array-contains", category]],
+    orderBy: [["price", "asc"]],
+  });
+
+  return result.data || [];
+}
+
+// Update stock
+async function updateStock(
+  productId: string,
+  newStock: number
+): Promise<boolean> {
+  const result = await update({
+    path: "products",
+    docId: productId,
+    data: { stock: newStock },
+  });
+
+  return !result.error;
+}
+
+// Delete product
+async function deleteProduct(productId: string): Promise<boolean> {
+  const result = await removeDoc({
+    path: "products",
+    docId: productId,
+  });
+
+  return !result.error;
+}
+
+// Using the functions
+async function manageInventory() {
+  // Create product
+  const newProductId = await createProduct({
+    name: "Smartphone",
+    price: 699.99,
+    stock: 10,
+    categories: ["electronics", "phones"],
+  });
+
+  // Get product
+  const product = await getProduct(newProductId!);
+  console.log(`Product: ${product?.name}, Price: $${product?.price}`);
+
+  // Update stock
+  await updateStock(newProductId!, 8);
+
+  // Get products by category
+  const phones = await getProductsByCategory("phones");
+  console.log(`Found ${phones.length} phones`);
+
+  // Delete product
+  await deleteProduct(newProductId!);
 }
 ```
 
-## Řešení běžných problémů
+## 📖 API Reference
 
-### Problém s klíčovým slovem 'delete'
+### `initialize(config)` / `initializeFirebase(config)`
 
-JavaScript/TypeScript má 'delete' jako rezervované klíčové slovo, což může způsobovat problémy při importu. Pro odstranění tohoto problému:
+Initializes Firebase with the provided configuration.
 
-```typescript
-// Použijte removeDoc místo delete
-import { removeDoc } from "firestore-helper";
+### `get(options)` / `getData(options)`
 
-// NEBO při importu přejmenujte funkci
-import { delete as removeDoc } from "firestore-helper";
-```
+Retrieves data based on specified parameters:
 
-### Problémy s importem v ESM/CommonJS prostředí
+- `path`: Path to collection or document
+- `docId`: (optional) Document ID
+- `where`: (optional) Filter conditions
+- `orderBy`: (optional) Sort results
+- `limit`: (optional) Limit number of results
 
-Pokud máte problémy s importem, zkuste tyto alternativní syntaxe:
+### `create(options)` / `createData(options)`
 
-```typescript
-// ESM import
-import * as FirestoreHelper from "firestore-helper";
-const { initialize, get } = FirestoreHelper;
+Creates a new document with an automatically generated ID:
 
-// CommonJS import
-const FirestoreHelper = require("firestore-helper");
-const { initialize, get } = FirestoreHelper;
-```
+- `path`: Path to collection
+- `data`: Data to store
+- `refetch`: (optional) Retrieve data after creation
 
-### Problémy s TypeScript deklaracemi
+### `update(options)` / `updateData(options)`
 
-Pokud TypeScript nerozpoznává typy, zkuste přidat soubor deklarace:
+Updates or creates a document:
 
-```typescript
-// vite-env.d.ts nebo typings.d.ts
-declare module "firestore-helper" {
-  export function initialize(config: any): any;
-  export function get(options: any): Promise<any>;
-  export function create(options: any): Promise<any>;
-  export function update(options: any): Promise<any>;
-  export function removeDoc(options: any): Promise<any>;
-  export function delete(options: any): Promise<any>;
+- `path`: Path to collection
+- `docId`: Document ID
+- `data`: Data to update
+- `merge`: (optional) Merge with existing data
+- `refetch`: (optional) Retrieve data after update
 
-  const FirestoreHelper: {
-    initialize: typeof initialize;
-    get: typeof get;
-    create: typeof create;
-    update: typeof update;
-    delete: typeof delete;
-    removeDoc: typeof removeDoc;
-  };
+### `removeDoc(options)` / `deleteData(options)`
 
-  export default FirestoreHelper;
-}
-```
+Deletes a document:
 
-## API Reference
+- `path`: Path to collection
+- `docId`: Document ID
+- `refetch`: (optional) Retrieve parent collection data after deletion
 
-### initialize(config)
+### `reset()` / `resetFirebase()`
 
-Inicializuje Firebase s danou konfigurací.
+Resets the Firebase instance (useful for testing).
 
-### get(options)
-
-Získá data z Firestore s možností filtrování, řazení a limitu.
-
-### create(options)
-
-Vytvoří nový dokument s automaticky generovaným ID.
-
-### update(options)
-
-Aktualizuje nebo vytvoří dokument na zadané cestě.
-
-### removeDoc(options) / delete(options)
-
-Smaže dokument z Firestore.
-
-### reset()
-
-Resetuje inicializaci Firebase (většinou potřeba jen pro testování).
-
-## Licence
+## 📄 License
 
 ISC

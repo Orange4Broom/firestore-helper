@@ -8,7 +8,7 @@ import {
   get,
   create,
   update,
-  delete as removeDoc,
+  removeDoc, // Použijeme removeDoc místo delete (klíčové slovo)
   // Import typů
   Result,
   GetOptions,
