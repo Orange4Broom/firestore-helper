@@ -3,6 +3,7 @@
 A simple library for working with Firebase Firestore in TypeScript/JavaScript applications.
 
 [![npm version](https://img.shields.io/npm/v/firestore-helper-ts.svg)](https://www.npmjs.com/package/firestore-helper-ts)
+[![CI](https://github.com/Orange4Broom/firestore-helper/actions/workflows/ci.yml/badge.svg)](https://github.com/Orange4Broom/firestore-helper/actions/workflows/ci.yml)
 
 ## 🚀 Installation
 
@@ -374,6 +375,28 @@ Testy jsou organizovány podle hlavních komponent knihovny:
 - **Firebase Core** - testy inicializace a Firebase instancí
 - **CRUD operace** - testy pro getData, createData, updateData, deleteData
 - **Utility** - testy pro pomocné funkce jako formatery a spojování cest
+
+## 🔄 Continuous Integration a Deployment
+
+Tento repozitář používá GitHub Actions pro automatizaci procesu vývoje, testování a vydávání.
+
+### CI Workflow
+
+- Automatické spouštění testů při každém push nebo pull requestu na hlavní větve
+- Testování na více verzích Node.js (16.x, 18.x, 20.x)
+- Automatické buildy pro ověření kompatibility
+
+### CD Workflow
+
+- Automatické publikování na npm při vytvoření nového tagu
+- Verze balíčku je automaticky aktualizována podle tagu
+- Automatické vytvoření GitHub Release s release notes
+
+### Dependabot
+
+- Automatické aktualizace závislostí
+- Automatické schvalování a mergování minor a patch aktualizací
+- Týdenní kontrola aktuálnosti npm balíčků i GitHub Actions
 
 ## 📄 License
 
