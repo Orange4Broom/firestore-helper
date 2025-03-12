@@ -350,6 +350,31 @@ Deletes a document:
 
 Resets the Firebase instance (useful for testing).
 
+## 🧪 Testování
+
+Knihovna obsahuje jednotkové testy pro zajištění správné funkčnosti. Testy jsou napsány pomocí frameworku Jest.
+
+### Spuštění testů
+
+```bash
+# Spustit všechny testy
+npm test
+
+# Spustit testy s watch módem
+npm run test:watch
+
+# Spustit testy s pokrytím kódu
+npm run test:coverage
+```
+
+### Struktura testů
+
+Testy jsou organizovány podle hlavních komponent knihovny:
+
+- **Firebase Core** - testy inicializace a Firebase instancí
+- **CRUD operace** - testy pro getData, createData, updateData, deleteData
+- **Utility** - testy pro pomocné funkce jako formatery a spojování cest
+
 ## 📄 License
 
 ISC
