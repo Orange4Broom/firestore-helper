@@ -1,53 +1,53 @@
-# Testování Firestore Helper
+# Firestore Helper Testing
 
-Tento adresář obsahuje jednotkové testy pro knihovnu Firestore Helper.
+This directory contains unit tests for the Firestore Helper library.
 
-## Přístupy k testování
+## Testing Approaches
 
-Testy používají [Jest](https://jestjs.io/) jako testovací framework a jsou strukturovány podle hlavních komponent knihovny:
+Tests use [Jest](https://jestjs.io/) as a testing framework and are structured according to the main components of the library:
 
-- **Firebase Core** - testy inicializace a Firebase instancí
-- **CRUD operace** - testy pro getData, createData, updateData, deleteData
-- **Utility** - testy pro pomocné funkce jako formatery a spojování cest
+- **Firebase Core** - tests for initialization and Firebase instances
+- **CRUD operations** - tests for getData, createData, updateData, deleteData
+- **Utilities** - tests for helper functions such as formatters and path joining
 
-## Spuštění testů
+## Running Tests
 
 ```bash
-# Spustit všechny testy
+# Run all tests
 npm test
 
-# Spustit testy s watch módem pro vývoj
+# Run tests with watch mode for development
 npm run test:watch
 
-# Spustit testy s pokrytím kódu
+# Run tests with code coverage
 npm run test:coverage
 ```
 
-## Struktura mockování
+## Mocking Structure
 
-Testy využívají mockování Firebase služeb, aby nemusely komunikovat se skutečnou Firebase instancí. Mockování je nastaveno v souboru `jest.setup.js`.
+Tests use mocking of Firebase services to avoid communicating with an actual Firebase instance. Mocking is set up in the `jest.setup.js` file.
 
-Pro většinu testů používáme tento přístup:
+For most tests, we use this approach:
 
-1. Mockujeme `getFirebaseInstance` aby vrátil mockovanou Firebase instanci
-2. Mockujeme Firebase funkce (getDoc, collection, atd.)
-3. Testujeme chování našich funkcí s mockovanými závislostmi
-4. Ověřujeme, že naše funkce volají Firebase správným způsobem
+1. We mock `getFirebaseInstance` to return a mocked Firebase instance
+2. We mock Firebase functions (getDoc, collection, etc.)
+3. We test the behavior of our functions with mocked dependencies
+4. We verify that our functions call Firebase in the correct way
 
-## Přidávání nových testů
+## Adding New Tests
 
-Při přidávání nových testů následujte tento vzor:
+When adding new tests, follow this pattern:
 
-1. Vytvořte soubor `[feature].test.ts` v adresáři `__tests__`
-2. Mockujte všechny potřebné závislosti
-3. Napište testy pro všechny možné scénáře:
-   - Úspěšné provedení
-   - Chybové stavy
-   - Okrajové případy
+1. Create a file `[feature].test.ts` in the `__tests__` directory
+2. Mock all necessary dependencies
+3. Write tests for all possible scenarios:
+   - Successful execution
+   - Error states
+   - Edge cases
 
-## Testovací tipy
+## Testing Tips
 
-- Používejte předpřipravené testovací utility, pokud je to možné
-- Pro každou funkci testujte i chybové scénáře
-- Dbejte na izolaci testů, aby testy nebyly navzájem závislé
-- Využívejte describe bloky pro logické seskupení testů
+- Use pre-prepared testing utilities when possible
+- Test error scenarios for each function
+- Ensure test isolation so tests are not dependent on each other
+- Use describe blocks for logical grouping of tests

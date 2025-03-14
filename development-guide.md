@@ -1,161 +1,161 @@
-# Příručka pro vývoj a publikování balíčku
+# Development and Publishing Guide
 
-## 1. Publikování nové verze balíčku
+## 1. Publishing a New Package Version
 
-Když jste připraveni vydat novou verzi vašeho balíčku, postupujte podle těchto kroků:
+When you're ready to release a new version of your package, follow these steps:
 
-### A) Aktualizace verze v package.json
+### A) Update the Version in package.json
 
-Můžete buď upravit verzi ručně v souboru `package.json`, nebo (doporučeno) použít npm příkaz, který to udělá za vás a zároveň vytvoří commit:
+You can either manually edit the version in the `package.json` file, or (recommended) use the npm command that will do it for you and create a commit at the same time:
 
 ```bash
-# Pro zvýšení patch verze (1.2.0 -> 1.2.1)
+# To increase patch version (1.2.0 -> 1.2.1)
 npm version patch
 
-# Pro zvýšení minor verze (1.2.0 -> 1.3.0)
+# To increase minor version (1.2.0 -> 1.3.0)
 npm version minor
 
-# Pro zvýšení major verze (1.2.0 -> 2.0.0)
+# To increase major version (1.2.0 -> 2.0.0)
 npm version major
 ```
 
-Toto nejen aktualizuje číslo verze v `package.json`, ale také automaticky vytvoří git commit a tag s touto verzí.
+This not only updates the version number in `package.json`, but also automatically creates a git commit and tag with this version.
 
-> **Tip:** Verze se řídí podle pravidel sémantického verzování (SemVer):
+> **Tip:** Versions follow semantic versioning (SemVer) rules:
 >
-> - **patch** - pro opravy bugů a malé změny, které neovlivňují API
-> - **minor** - pro nové funkce, které jsou zpětně kompatibilní
-> - **major** - pro změny, které mění API a nejsou zpětně kompatibilní
+> - **patch** - for bug fixes and small changes that don't affect the API
+> - **minor** - for new features that are backward compatible
+> - **major** - for changes that modify the API and are not backward compatible
 
-### B) Vytvoření a push tagu
+### B) Creating and Pushing a Tag
 
-Pokud jste použili `npm version`, tag už byl vytvořen automaticky. Stačí ho jen pushnout na GitHub:
+If you used `npm version`, the tag was already created automatically. You just need to push it to GitHub:
 
 ```bash
-# Push změn v kódu
+# Push code changes
 git push origin master
 
-# Push tagu (důležité!)
+# Push tags (important!)
 git push origin --tags
 ```
 
-Případně, pokud chcete ručně vytvořit tag:
+Alternatively, if you want to manually create a tag:
 
 ```bash
-# Vytvoření tagu (musí začínat "v" + číslo verze)
+# Create a tag (must start with "v" + version number)
 git tag v1.2.3
 
-# Push tagu na GitHub
+# Push the tag to GitHub
 git push origin v1.2.3
 ```
 
-### C) Sledování průběhu publikování
+### C) Monitoring the Publishing Process
 
-Po pushnutí tagu GitHub Actions automaticky:
+After pushing the tag, GitHub Actions will automatically:
 
-1. Spustí workflow definovaný v `.github/workflows/publish.yml`
-2. Zkontroluje a otestuje kód
-3. Vybuduje distribuční verzi balíčku
-4. Publikuje balíček na npm
-5. Vytvoří GitHub Release s poznámkami
+1. Run the workflow defined in `.github/workflows/publish.yml`
+2. Check and test the code
+3. Build the distribution version of the package
+4. Publish the package to npm
+5. Create a GitHub Release with notes
 
-Průběh publikování můžete sledovat na:
+You can monitor the publishing process at:
 
-- Záložce "Actions" ve vašem GitHub repozitáři: https://github.com/Orange4Broom/firestore-helper/actions
-- V sekci "Releases" po dokončení: https://github.com/Orange4Broom/firestore-helper/releases
+- The "Actions" tab in your GitHub repository: https://github.com/Orange4Broom/firestore-helper/actions
+- In the "Releases" section after completion: https://github.com/Orange4Broom/firestore-helper/releases
 
-Po úspěšném dokončení bude nová verze balíčku dostupná na npm registru.
+After successful completion, the new version of the package will be available on the npm registry.
 
-## 2. Průběžný vývoj s větvemi a pull requesty
+## 2. Continuous Development with Branches and Pull Requests
 
-Pro systematický vývoj nových funkcí nebo opravu bugů je vhodné používat izolované větve:
+For systematic development of new features or bug fixes, it's advisable to use isolated branches:
 
-### A) Vytvoření nové větve pro vývoj funkce
+### A) Creating a New Branch for Feature Development
 
 ```bash
-# Ujistěte se, že máte aktuální master
+# Make sure you have the latest master
 git checkout master
 git pull origin master
 
-# Vytvořte novou větev s popisným názvem
-git checkout -b feature/novy-modul
-# nebo
-git checkout -b fix/oprava-chyby-v-api
+# Create a new branch with a descriptive name
+git checkout -b feature/new-module
+# or
+git checkout -b fix/api-bug-fix
 ```
 
-Konvence pro názvy větví:
+Conventions for branch names:
 
-- `feature/nazev-funkce` - pro nové funkce
-- `fix/nazev-opravy` - pro opravy chyb
-- `docs/nazev-dokumentace` - pro aktualizace dokumentace
-- `refactor/popis` - pro refaktorování kódu
+- `feature/feature-name` - for new features
+- `fix/fix-name` - for bug fixes
+- `docs/documentation-name` - for documentation updates
+- `refactor/description` - for code refactoring
 
-### B) Vývoj a commit změn
+### B) Development and Committing Changes
 
-Pracujte na funkcionalitě ve své větvi a dělejte commity:
+Work on the functionality in your branch and make commits:
 
 ```bash
-# Přidání změněných souborů
+# Add changed files
 git add .
 
-# Commit s popisným komentářem
-git commit -m "Add: Implementace nového modulu pro práci s transakcemi"
+# Commit with a descriptive comment
+git commit -m "Add: Implementation of new module for transaction handling"
 ```
 
-Tipy pro commit zprávy:
+Tips for commit messages:
 
-- Používejte prefixů jako "Add:", "Fix:", "Update:", "Refactor:" pro přehlednost
-- Pište v přítomném čase, např. "Add" místo "Added"
-- Udržujte zprávy stručné, ale informativní
+- Use prefixes like "Add:", "Fix:", "Update:", "Refactor:" for clarity
+- Write in present tense, e.g., "Add" instead of "Added"
+- Keep messages concise, but informative
 
-### C) Push větve a vytvoření pull requestu
+### C) Pushing the Branch and Creating a Pull Request
 
 ```bash
-# Push vaší větve na GitHub
-git push origin feature/novy-modul
+# Push your branch to GitHub
+git push origin feature/new-module
 ```
 
-Poté přejděte na GitHub a vytvořte Pull Request:
+Then go to GitHub and create a Pull Request:
 
-1. Jděte na váš repozitář
-2. Klikněte na "Pull requests" > "New pull request"
-3. Vyberte jako cílovou větev `master` a jako zdrojovou vaši větev `feature/novy-modul`
-4. Napište popis změn v PR
-5. Klikněte na "Create pull request"
+1. Go to your repository
+2. Click on "Pull requests" > "New pull request"
+3. Select `master` as the target branch and your branch `feature/new-module` as the source
+4. Write a description of the changes in the PR
+5. Click on "Create pull request"
 
-### D) Automatické testování v pull requestu
+### D) Automated Testing in the Pull Request
 
-Po vytvoření pull requestu se automaticky spustí CI workflow:
+After creating a pull request, the CI workflow will automatically run:
 
-1. GitHub Actions zkontroluje váš kód
-2. Spustí testy na různých verzích Node.js
-3. Zkontroluje, zda build prochází
+1. GitHub Actions will check your code
+2. Run tests on different Node.js versions
+3. Check if the build passes
 
-Výsledek testů uvidíte přímo v pull requestu - buď zelená fajfka (prošlo) nebo červený křížek (selhalo).
+You'll see the test results directly in the pull request - either a green checkmark (passed) or a red X (failed).
 
-### E) Review, úpravy a merge
+### E) Review, Adjustments, and Merge
 
-1. Pokud testy selžou, opravte problémy ve vaší větvi a pushněte znovu
-2. Po úspěšném testu může být PR reviewován dalšími vývojáři
-3. Po schválení můžete PR sloučit do masteru pomocí tlačítka "Merge pull request"
-4. Pak můžete smazat vaši větev
+1. If tests fail, fix the issues in your branch and push again
+2. After successful testing, the PR can be reviewed by other developers
+3. After approval, you can merge the PR into master using the "Merge pull request" button
+4. Then you can delete your branch
 
-## 3. Práce s Dependabotem
+## 3. Working with Dependabot
 
-Dependabot automaticky kontroluje závislosti vašeho projektu a vytváří pull requesty s aktualizacemi:
+Dependabot automatically checks your project's dependencies and creates pull requests with updates:
 
-### A) Jak Dependabot funguje
+### A) How Dependabot Works
 
-1. Každý týden (podle konfigurace v `.github/dependabot.yml`) kontroluje všechny závislosti
-2. Pokud najde zastaralé balíčky, vytvoří pull request s aktualizací
-3. U minor a patch aktualizací bude automaticky schválen a sloučen (podle workflow v `.github/workflows/dependabot-auto-merge.yml`)
-4. Pro major aktualizace je vyžadován manuální review a merge
+1. Every week (according to the configuration in `.github/dependabot.yml`) it checks all dependencies
+2. If it finds outdated packages, it creates a pull request with an update
+3. For minor and patch updates, it will be automatically approved and merged (according to the workflow in `.github/workflows/dependabot-auto-merge.yml`)
+4. For major updates, manual review and merge are required
 
-### B) Práce s Dependabot pull requesty
+### B) Working with Dependabot Pull Requests
 
-Pro major aktualizace nebo pull requesty, které se nemergnuly automaticky:
+For major updates or pull requests that didn't merge automatically:
 
-1. Zkontrolujte změny v PR
-2. Pusťte testy lokálně, pokud potřebujete dodatečná ověření
-3. Pokud vše vypadá v pořádku, schvalte a sloučte PR
-4. Pokud update působí problémy, můžete PR zavřít a ignorovat aktualizaci, nebo ručně upravit verzi v `package.json`
+1. Check the changes in the PR
+2. Run tests locally if you need additional verification
+3. If everything looks good, approve and merge the PR
+4. If the update causes problems, you can close the PR and ignore the update, or manually adjust the version in `package.json`

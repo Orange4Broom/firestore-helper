@@ -351,52 +351,52 @@ Deletes a document:
 
 Resets the Firebase instance (useful for testing).
 
-## 🧪 Testování
+## 🧪 Testing
 
-Knihovna obsahuje jednotkové testy pro zajištění správné funkčnosti. Testy jsou napsány pomocí frameworku Jest.
+The library contains unit tests to ensure proper functionality. Tests are written using the Jest framework.
 
-### Spuštění testů
+### Running Tests
 
 ```bash
-# Spustit všechny testy
+# Run all tests
 npm test
 
-# Spustit testy s watch módem
+# Run tests with watch mode
 npm run test:watch
 
-# Spustit testy s pokrytím kódu
+# Run tests with code coverage
 npm run test:coverage
 ```
 
-### Struktura testů
+### Test Structure
 
-Testy jsou organizovány podle hlavních komponent knihovny:
+Tests are organized according to the main components of the library:
 
-- **Firebase Core** - testy inicializace a Firebase instancí
-- **CRUD operace** - testy pro getData, createData, updateData, deleteData
-- **Utility** - testy pro pomocné funkce jako formatery a spojování cest
+- **Firebase Core** - tests for initialization and Firebase instances
+- **CRUD operations** - tests for getData, createData, updateData, deleteData
+- **Utilities** - tests for helper functions such as formatters and path joining
 
-## 🔄 Continuous Integration a Deployment
+## 🔄 Continuous Integration and Deployment
 
-Tento repozitář používá GitHub Actions pro automatizaci procesu vývoje, testování a vydávání.
+This repository uses GitHub Actions to automate the development, testing, and release process.
 
 ### CI Workflow
 
-- Automatické spouštění testů při každém push nebo pull requestu na hlavní větve
-- Testování na více verzích Node.js (16.x, 18.x, 20.x)
-- Automatické buildy pro ověření kompatibility
+- Automatic test execution on every push or pull request to main branches
+- Testing on multiple Node.js versions (16.x, 18.x, 20.x)
+- Automatic builds to verify compatibility
 
 ### CD Workflow
 
-- Automatické publikování na npm při vytvoření nového tagu
-- Verze balíčku je automaticky aktualizována podle tagu
-- Automatické vytvoření GitHub Release s release notes
+- Automatic publishing to npm when a new tag is created
+- Package version is automatically updated based on the tag
+- Automatic creation of GitHub Release with release notes
 
 ### Dependabot
 
-- Automatické aktualizace závislostí
-- Automatické schvalování a mergování minor a patch aktualizací
-- Týdenní kontrola aktuálnosti npm balíčků i GitHub Actions
+- Automatic dependency updates
+- Automatic approval and merging of minor and patch updates
+- Weekly checks for npm package and GitHub Actions updates
 
 ## 📄 License
 
