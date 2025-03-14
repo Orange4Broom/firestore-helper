@@ -38,7 +38,11 @@ jobs:
         run: npm ci
 
       - name: Install documentation tools
-        run: npm install -g typedoc typedoc-plugin-markdown
+        run: |
+          # Použít specifické verze kompatibilní s naším TypeScriptem
+          npm install --save-dev typedoc@0.25.12 typedoc-plugin-markdown@3.17.1
+          # Ujistit se, že existuje složka docs-assets
+          mkdir -p docs-assets
 
       - name: Generate documentation
         run: npm run docs

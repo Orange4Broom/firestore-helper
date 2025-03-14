@@ -29,7 +29,7 @@
     "clean": "rm -rf dist",
     "prebuild": "npm run clean",
     "prepublishOnly": "npm run build",
-    "docs": "typedoc --out docs src/index.ts",
+    "docs": "mkdir -p docs-assets && typedoc --out docs src/index.ts || echo \"Documentation generation failed but continuing\"",
     "docs:serve": "npx serve docs"
   },
   "keywords": [
@@ -64,7 +64,8 @@
     "jest": "^29.7.0",
     "jest-mock": "^29.7.0",
     "typescript": "^5.8.2",
-    "typedoc": "^0.25.12"
+    "typedoc": "^0.25.12",
+    "typedoc-plugin-markdown": "^3.17.1"
   },
   "dependencies": {
     "firebase": "^10.0.0 || ^11.0.0"

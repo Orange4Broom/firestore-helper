@@ -12,7 +12,6 @@
   "sort": ["visibility", "alphabetical"],
   "categorizeByGroup": true,
   "defaultCategory": "API",
-  "categorizeByGroup": true,
   "navigationLinks": {
     "GitHub": "https://github.com/Orange4Broom/firestore-helper",
     "npm": "https://www.npmjs.com/package/firestore-helper-ts"
@@ -24,5 +23,13 @@
     "inherited": true,
     "external": true
   },
-  "customCss": "./docs-assets/custom.css"
+  "customCss": "./docs-assets/custom.css",
+  "pluginOptions": {
+    "typedoc-plugin-markdown": {
+      "outputFormat": "github",
+      "hideInPageTOC": true,
+      "hidePageTitle": false,
+      "entryFileName": "README.md"
+    }
+  }
 } 
