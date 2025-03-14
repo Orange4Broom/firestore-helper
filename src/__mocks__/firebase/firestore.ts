@@ -22,4 +22,5 @@ export const disableNetwork = jest.fn().mockResolvedValue(undefined);
 // @ts-ignore
 export const enableIndexedDbPersistence = jest
   .fn()
+  // @ts-ignore
   .mockResolvedValue(undefined);

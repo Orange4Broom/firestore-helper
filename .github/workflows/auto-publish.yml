@@ -1,0 +1,160 @@
+name: Auto Publish to npm
+
+on:
+  push:
+    branches:
+      - master # nebo main, podle toho, jak máte pojmenovanou hlavní větev
+    paths:
+      - "src/**"
+      - "package.json"
+      - "tsconfig.json"
+      - ".github/workflows/auto-publish.yml"
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  auto-publish:
+    name: Auto Publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Get current version
+        id: package_version
+        run: echo "CURRENT_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Get commit message
+        id: commit_message
+        run: echo "MESSAGE=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+
+      - name: Determine version change type
+        id: version_type
+        run: |
+          COMMIT_MSG="${{ steps.commit_message.outputs.MESSAGE }}"
+
+          if [[ "$COMMIT_MSG" == *"BREAKING CHANGE"* ]] || [[ "$COMMIT_MSG" == "major:"* ]]; then
+            echo "TYPE=major" >> $GITHUB_OUTPUT
+          elif [[ "$COMMIT_MSG" == "feat"* ]] || [[ "$COMMIT_MSG" == "minor:"* ]]; then
+            echo "TYPE=minor" >> $GITHUB_OUTPUT
+          else
+            echo "TYPE=patch" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check if version already exists on npm
+        id: version_check
+        run: |
+          PKG_NAME=$(node -p "require('./package.json').name")
+          VERSION=${{ steps.package_version.outputs.CURRENT_VERSION }}
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://registry.npmjs.org/$PKG_NAME/$VERSION")
+
+          # Parsování současné verze
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          MINOR=$(echo $VERSION | cut -d. -f2)
+          PATCH=$(echo $VERSION | cut -d. -f3)
+
+          # Jaký typ verze navýšit podle commit konvence
+          VERSION_TYPE="${{ steps.version_type.outputs.TYPE }}"
+
+          if [ "$HTTP_STATUS" = "200" ]; then
+            # Verze již existuje, inkrementujeme podle typu
+            if [ "$VERSION_TYPE" = "major" ]; then
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+            elif [ "$VERSION_TYPE" = "minor" ]; then
+              MINOR=$((MINOR + 1))
+              PATCH=0
+            else
+              PATCH=$((PATCH + 1))
+            fi
+            NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+            SHOULD_PUBLISH="true"
+          elif [ "$HTTP_STATUS" = "404" ]; then
+            # Verze ještě neexistuje, ale můžeme chtít navýšit podle typu
+            if [ "$VERSION_TYPE" = "major" ]; then
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+            elif [ "$VERSION_TYPE" = "minor" ]; then
+              MINOR=$((MINOR + 1))
+              PATCH=0
+            fi
+            NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+            SHOULD_PUBLISH="true"
+          else
+            # Nějaký problém s npm registry
+            SHOULD_PUBLISH="false"
+            NEW_VERSION="$VERSION"
+            echo "Failed to check NPM registry, HTTP status: $HTTP_STATUS"
+          fi
+
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "SHOULD_PUBLISH=$SHOULD_PUBLISH" >> $GITHUB_OUTPUT
+
+      - name: Update package.json version if needed
+        if: steps.version_check.outputs.SHOULD_PUBLISH == 'true' && steps.version_check.outputs.NEW_VERSION != steps.package_version.outputs.CURRENT_VERSION
+        run: npm version ${{ steps.version_check.outputs.NEW_VERSION }} --no-git-tag-version
+
+      - name: Build
+        if: steps.version_check.outputs.SHOULD_PUBLISH == 'true'
+        run: npm run build
+
+      - name: Publish to npm
+        if: steps.version_check.outputs.SHOULD_PUBLISH == 'true'
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Použijeme actions/github-script pro práci s GitHub API
+      - name: Create Git Tag and Release
+        if: steps.version_check.outputs.SHOULD_PUBLISH == 'true'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const newVersion = "${{ steps.version_check.outputs.NEW_VERSION }}";
+            const tagName = `v${newVersion}`;
+
+            try {
+              // Vytvoření tagu
+              await github.rest.git.createRef({
+                owner,
+                repo,
+                ref: `refs/tags/${tagName}`,
+                sha: context.sha
+              });
+              
+              // Vytvoření release
+              await github.rest.repos.createRelease({
+                owner,
+                repo,
+                tag_name: tagName,
+                name: `Release ${tagName}`,
+                generate_release_notes: true,
+                draft: false,
+                prerelease: false
+              });
+              
+              console.log(`Successfully created tag and release for ${tagName}`);
+            } catch (error) {
+              console.error(`Error creating tag or release: ${error.message}`);
+              // Neukončíme workflow chybou, protože publikování na npm mohlo proběhnout úspěšně
+            }
