@@ -87,7 +87,6 @@ Conventions for branch names:
 
 - `feature/feature-name` - for new features
 - `fix/fix-name` - for bug fixes
-- `docs/documentation-name` - for documentation updates
 - `refactor/description` - for code refactoring
 
 ### B) Development and Committing Changes

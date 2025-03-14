@@ -496,26 +496,6 @@ function updateProductStock(productId: string, newStock: number) {
 }
 ```
 
-## 📚 Documentation
-
-For more detailed documentation, visit:
-
-- [API Documentation](https://orange4broom.github.io/firestore-helper/) - TypeDoc generated API docs
-- [GitHub Repository](https://github.com/Orange4Broom/firestore-helper) - Source code and latest updates
-
-You can also generate the documentation locally:
-
-```bash
-# Install dependencies
-npm install
-
-# Generate docs in the docs/ folder
-npm run docs
-
-# Serve documentation locally
-npm run docs:serve
-```
-
 ## 🧪 Testing
 
 The library contains unit tests to ensure proper functionality. Tests are written using the Jest framework.

@@ -33,6 +33,3 @@ Thumbs.db
 # Test coverage
 coverage/ 
 .qodo
-
-# Documentation
-docs/
