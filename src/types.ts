@@ -2,64 +2,75 @@ import { FirebaseOptions, FirebaseApp } from "firebase/app";
 import { Firestore } from "firebase/firestore";
 
 /**
- * Konfigurace Firebase
+ * Firebase configuration options
+ * Extends FirebaseOptions from the Firebase SDK
  */
 export type FirebaseConfig = FirebaseOptions;
 
 /**
- * Stav Firebase instance
+ * Current state of the Firebase instance
+ * Tracks initialization status and available services
  */
 export interface FirebaseState {
+  /** Firebase app instance */
   app: FirebaseApp | null;
+  /** Firestore database instance */
   firestore: Firestore | null;
+  /** Whether Firebase has been initialized */
   initialized: boolean;
 }
 
 /**
- * Možnosti pro získání dat
+ * Options for retrieving data from Firestore
+ * Used by getData/get function
  */
 export interface GetOptions {
-  /** Cesta ke kolekci nebo dokumentu v Firestore */
+  /** Path to the collection or document in Firestore */
   path: string;
-  /** Volitelná ID dokumentu pokud získáváme jeden dokument z kolekce */
+  /** Optional document ID when retrieving a single document from a collection */
   docId?: string;
-  /** Volitelný objekt s podmínkami pro filtrování kolekce */
+  /** Optional array of filter conditions in format [field, operator, value] */
   where?: Array<[string, WhereFilterOp, any]>;
-  /** Volitelné řazení výsledků */
+  /** Optional array of sort conditions in format [field, direction] */
   orderBy?: Array<[string, OrderByDirection?]>;
-  /** Volitelný limit počtu dokumentů */
+  /** Optional maximum number of documents to return */
   limit?: number;
 }
 
 /**
- * Možnosti pro aktualizaci dat
+ * Options for updating or creating data in Firestore
+ * Used by updateData/update function
  */
 export interface UpdateOptions {
-  /** Cesta ke kolekci nebo dokumentu v Firestore */
+  /** Path to the collection or document in Firestore */
   path: string;
-  /** ID dokumentu, pokud aktualizujeme dokument v kolekci */
+  /** Document ID when updating a document in a collection */
   docId?: string;
-  /** Data k aktualizaci */
+  /** Data to update or create in the document */
   data: Record<string, any>;
-  /** Zda provést merge (true) nebo přepsat celý dokument (false) */
+  /** Whether to merge with existing data (true) or overwrite the document (false) */
   merge?: boolean;
-  /** Zda automaticky získat aktualizovaná data po úspěšné aktualizaci */
+  /** Whether to automatically retrieve updated data after successful update */
   refetch?: boolean;
 }
 
 /**
- * Možnosti pro mazání dat
+ * Options for deleting data from Firestore
+ * Used by deleteData/removeDoc function
  */
 export interface DeleteOptions {
-  /** Cesta ke kolekci nebo dokumentu v Firestore */
+  /** Path to the collection or document in Firestore */
   path: string;
-  /** ID dokumentu, pokud mažeme dokument v kolekci */
+  /** Document ID when deleting a document in a collection */
   docId?: string;
-  /** Zda automaticky získat aktualizovaná data po úspěšném smazání */
+  /** Whether to automatically retrieve parent collection data after successful deletion */
   refetch?: boolean;
 }
 
-// Typy z Firebase pro zajištění TypeScript podpory
+/**
+ * Filter operators for Firestore queries
+ * Matches the operators supported by Firestore
+ */
 export type WhereFilterOp =
   | "<"
   | "<="
@@ -72,13 +83,23 @@ export type WhereFilterOp =
   | "in"
   | "not-in";
 
+/**
+ * Sort direction for Firestore queries
+ * "asc" for ascending, "desc" for descending
+ */
 export type OrderByDirection = "asc" | "desc";
 
 /**
- * Výsledek operace
+ * Standard result object returned by all operations
+ * Contains the data, any error, and loading status
+ *
+ * @template T - Type of the data returned
  */
 export interface Result<T = any> {
+  /** The retrieved, created, or updated data (null if operation failed) */
   data: T | null;
+  /** Error object if the operation failed (null on success) */
   error: Error | null;
+  /** Whether the operation is still in progress */
   loading: boolean;
 }

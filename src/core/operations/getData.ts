@@ -24,9 +24,30 @@ import {
 } from "../../types";
 
 /**
- * Získá data z Firestore podle zadaných parametrů
- * @param options - Parametry pro získání dat
- * @returns Výsledek operace
+ * Retrieves data from Firestore based on specified parameters
+ *
+ * @template T - Type of the returned data
+ * @param {GetOptions} options - Options for retrieving data
+ * @param {string} options.path - Path to the collection or document
+ * @param {string} [options.docId] - Optional document ID if retrieving a single document
+ * @param {Array<[string, WhereFilterOp, any]>} [options.where] - Optional array of filter conditions in format [field, operator, value]
+ * @param {Array<[string, OrderByDirection?]>} [options.orderBy] - Optional array of sort conditions in format [field, direction]
+ * @param {number} [options.limit] - Optional maximum number of documents to return
+ *
+ * @returns {Promise<Result<T>>} Result object containing data, error, and loading status
+ *
+ * @example
+ * // Get a single document
+ * const user = await getData({ path: 'users', docId: 'user123' });
+ *
+ * @example
+ * // Get a filtered collection
+ * const activeUsers = await getData({
+ *   path: 'users',
+ *   where: [['status', '==', 'active']],
+ *   orderBy: [['createdAt', 'desc']],
+ *   limit: 10
+ * });
  */
 export async function getData<T = any>(
   options: GetOptions
@@ -42,7 +63,7 @@ export async function getData<T = any>(
   try {
     const { firestore } = getFirebaseInstance();
 
-    // Pokud je zadáno ID dokumentu, získáme jeden dokument
+    // If document ID is provided, get a single document
     if (docId) {
       const docRef = doc(firestore, joinPath(path, docId));
       const snapshot = await getDoc(docRef);
@@ -51,18 +72,18 @@ export async function getData<T = any>(
       return { data, error: null, loading: false };
     }
 
-    // Jinak získáme kolekci a aplikujeme filtry
+    // Otherwise get a collection and apply filters
     let collectionRef: CollectionReference = collection(firestore, path);
     let queryRef: Query = collectionRef;
 
-    // Aplikujeme where podmínky
+    // Apply where conditions
     if (whereOptions && whereOptions.length > 0) {
       whereOptions.forEach(([field, op, value]) => {
         queryRef = query(queryRef, where(field, op as WhereFilterOp, value));
       });
     }
 
-    // Aplikujeme řazení
+    // Apply sorting
     if (orderByOptions && orderByOptions.length > 0) {
       orderByOptions.forEach(([field, direction]) => {
         queryRef = query(
@@ -72,7 +93,7 @@ export async function getData<T = any>(
       });
     }
 
-    // Aplikujeme limit
+    // Apply limit
     if (limitCount) {
       queryRef = query(queryRef, limit(limitCount));
     }
@@ -82,7 +103,7 @@ export async function getData<T = any>(
 
     return { data, error: null, loading: false };
   } catch (error) {
-    console.error("Chyba při získávání dat:", error);
+    console.error("Error retrieving data:", error);
     return { data: null, error: error as Error, loading: false };
   }
 }

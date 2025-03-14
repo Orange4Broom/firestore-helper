@@ -305,51 +305,216 @@ async function manageInventory() {
 }
 ```
 
-## 📖 API Reference
+## 🚀 Advanced Usage
 
-### `initialize(config)` / `initializeFirebase(config)`
+### Complex Queries with Multiple Conditions
 
-Initializes Firebase with the provided configuration.
+You can create more complex queries by combining multiple conditions:
 
-### `get(options)` / `getData(options)`
+```typescript
+import { get } from "firestore-helper-ts";
 
-Retrieves data based on specified parameters:
+// Find active premium users who have logged in recently
+const result = await get({
+  path: "users",
+  where: [
+    ["isActive", "==", true],
+    ["subscriptionTier", "==", "premium"],
+    ["lastLogin", ">", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)], // 7 days ago
+  ],
+  orderBy: [
+    ["lastLogin", "desc"], // Most recent logins first
+  ],
+  limit: 20,
+});
 
-- `path`: Path to collection or document
-- `docId`: (optional) Document ID
-- `where`: (optional) Filter conditions
-- `orderBy`: (optional) Sort results
-- `limit`: (optional) Limit number of results
+// Process the results
+result.data?.forEach((user) => {
+  console.log(
+    `Premium user ${user.name} last logged in on ${user.lastLogin.toDate()}`
+  );
+});
+```
 
-### `create(options)` / `createData(options)`
+### Working with Subcollections
 
-Creates a new document with an automatically generated ID:
+You can work with nested data structures using subcollections:
 
-- `path`: Path to collection
-- `data`: Data to store
-- `refetch`: (optional) Retrieve data after creation
+```typescript
+import { create, get, update } from "firestore-helper-ts";
 
-### `update(options)` / `updateData(options)`
+// Create a parent document
+const { data: organization } = await create({
+  path: "organizations",
+  data: { name: "Acme Inc.", founded: 1985 },
+});
 
-Updates or creates a document:
+// Add a document to a subcollection
+const orgId = organization.id;
+await create({
+  path: `organizations/${orgId}/departments`,
+  data: { name: "Engineering", headCount: 25 },
+});
 
-- `path`: Path to collection
-- `docId`: Document ID
-- `data`: Data to update
-- `merge`: (optional) Merge with existing data
-- `refetch`: (optional) Retrieve data after update
+// Get all departments for an organization
+const { data: departments } = await get({
+  path: `organizations/${orgId}/departments`,
+});
 
-### `removeDoc(options)` / `deleteData(options)`
+// Get a specific department
+const { data: engineeringDept } = await get({
+  path: `organizations/${orgId}/departments`,
+  where: [["name", "==", "Engineering"]],
+});
 
-Deletes a document:
+// Update a document in a subcollection
+await update({
+  path: `organizations/${orgId}/departments`,
+  docId: engineeringDept[0].id,
+  data: { headCount: 30 },
+});
+```
 
-- `path`: Path to collection
-- `docId`: Document ID
-- `refetch`: (optional) Retrieve parent collection data after deletion
+### Error Handling Strategies
 
-### `reset()` / `resetFirebase()`
+The library provides consistent error handling:
 
-Resets the Firebase instance (useful for testing).
+```typescript
+import { get, create } from "firestore-helper-ts";
+
+// Using try/catch
+try {
+  const result = await get({
+    path: "users",
+    docId: "non-existent-id",
+  });
+
+  if (result.error) {
+    console.error("Error fetching data:", result.error.message);
+    // Handle the error appropriately
+    return;
+  }
+
+  // Process data
+  console.log("User data:", result.data);
+} catch (e) {
+  console.error("Unexpected error:", e);
+}
+
+// Using the result object directly
+const createResult = await create({
+  path: "products",
+  data: { name: "New Product", price: -50 }, // Invalid price
+});
+
+if (createResult.error) {
+  console.error("Could not create product:", createResult.error.message);
+  // Show error message to user
+} else {
+  console.log("Product created with ID:", createResult.data.id);
+}
+```
+
+### Custom Type Guards
+
+You can create custom type guards for better type safety:
+
+```typescript
+import { get } from "firestore-helper-ts";
+
+// Define your interface
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  stock: number;
+  isAvailable: boolean;
+}
+
+// Create a type guard
+function isProduct(data: any): data is Product {
+  return (
+    data &&
+    typeof data.name === "string" &&
+    typeof data.price === "number" &&
+    typeof data.stock === "number" &&
+    typeof data.isAvailable === "boolean"
+  );
+}
+
+// Use it with your queries
+async function getProduct(productId: string): Promise<Product | null> {
+  const result = await get<any>({
+    path: "products",
+    docId: productId,
+  });
+
+  if (result.data && isProduct(result.data)) {
+    return result.data;
+  }
+
+  return null;
+}
+```
+
+### Optimistic Updates
+
+Implement optimistic updates for a responsive UI:
+
+```typescript
+import { update } from "firestore-helper-ts";
+
+// Client-side state
+let products = [
+  { id: "prod1", name: "Laptop", stock: 5 },
+  { id: "prod2", name: "Phone", stock: 10 },
+];
+
+// Update the UI immediately (optimistically)
+function updateProductStock(productId: string, newStock: number) {
+  // Update local state first
+  const productIndex = products.findIndex((p) => p.id === productId);
+  if (productIndex !== -1) {
+    const oldStock = products[productIndex].stock;
+    products[productIndex].stock = newStock;
+    renderProductList(); // Update UI
+
+    // Then update the backend
+    update({
+      path: "products",
+      docId: productId,
+      data: { stock: newStock },
+    }).then((result) => {
+      if (result.error) {
+        // Revert on error
+        console.error("Failed to update stock:", result.error);
+        products[productIndex].stock = oldStock;
+        renderProductList(); // Update UI with original value
+      }
+    });
+  }
+}
+```
+
+## 📚 Documentation
+
+For more detailed documentation, visit:
+
+- [API Documentation](https://orange4broom.github.io/firestore-helper/) - TypeDoc generated API docs
+- [GitHub Repository](https://github.com/Orange4Broom/firestore-helper) - Source code and latest updates
+
+You can also generate the documentation locally:
+
+```bash
+# Install dependencies
+npm install
+
+# Generate docs in the docs/ folder
+npm run docs
+
+# Serve documentation locally
+npm run docs:serve
+```
 
 ## 🧪 Testing
 

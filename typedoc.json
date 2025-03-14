@@ -1,0 +1,28 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/index.ts"],
+  "out": "docs",
+  "name": "Firestore Helper TS",
+  "includeVersion": true,
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "readme": "README.md",
+  "plugin": ["typedoc-plugin-markdown"],
+  "tsconfig": "./tsconfig.json",
+  "sort": ["visibility", "alphabetical"],
+  "categorizeByGroup": true,
+  "defaultCategory": "API",
+  "categorizeByGroup": true,
+  "navigationLinks": {
+    "GitHub": "https://github.com/Orange4Broom/firestore-helper",
+    "npm": "https://www.npmjs.com/package/firestore-helper-ts"
+  },
+  "searchInComments": true,
+  "visibilityFilters": {
+    "protected": false,
+    "private": false,
+    "inherited": true,
+    "external": true
+  },
+  "customCss": "./docs-assets/custom.css"
+} 

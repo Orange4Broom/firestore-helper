@@ -27,6 +27,11 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Generate documentation
+        run: |
+          npm install -g typedoc typedoc-plugin-markdown
+          npm run docs
+
       - name: Extract version from tag
         id: extract_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
