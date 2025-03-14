@@ -42,20 +42,26 @@ jobs:
 
       - name: Get commit message
         id: commit_message
-        run: echo "MESSAGE=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+        run: |
+          MSG=$(git log -1 --pretty=%s)
+          echo "MESSAGE<<EOF" >> $GITHUB_OUTPUT
+          echo "$MSG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Determine version change type
         id: version_type
         run: |
+          VERSION_TYPE="patch"
+
           COMMIT_MSG="${{ steps.commit_message.outputs.MESSAGE }}"
 
           if [[ "$COMMIT_MSG" == *"BREAKING CHANGE"* ]] || [[ "$COMMIT_MSG" == "major:"* ]]; then
-            echo "TYPE=major" >> $GITHUB_OUTPUT
-          elif [[ "$COMMIT_MSG" == "feat"* ]] || [[ "$COMMIT_MSG" == "minor:"* ]]; then
-            echo "TYPE=minor" >> $GITHUB_OUTPUT
-          else
-            echo "TYPE=patch" >> $GITHUB_OUTPUT
+            VERSION_TYPE="major"
+          elif [[ "$COMMIT_MSG" == "feat:"* ]] || [[ "$COMMIT_MSG" == "minor:"* ]]; then
+            VERSION_TYPE="minor"
           fi
+
+          echo "TYPE=$VERSION_TYPE" >> $GITHUB_OUTPUT
 
       - name: Check if version already exists on npm
         id: version_check
@@ -64,16 +70,13 @@ jobs:
           VERSION=${{ steps.package_version.outputs.CURRENT_VERSION }}
           HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://registry.npmjs.org/$PKG_NAME/$VERSION")
 
-          # Parsování současné verze
           MAJOR=$(echo $VERSION | cut -d. -f1)
           MINOR=$(echo $VERSION | cut -d. -f2)
           PATCH=$(echo $VERSION | cut -d. -f3)
 
-          # Jaký typ verze navýšit podle commit konvence
           VERSION_TYPE="${{ steps.version_type.outputs.TYPE }}"
 
           if [ "$HTTP_STATUS" = "200" ]; then
-            # Verze již existuje, inkrementujeme podle typu
             if [ "$VERSION_TYPE" = "major" ]; then
               MAJOR=$((MAJOR + 1))
               MINOR=0
@@ -87,7 +90,6 @@ jobs:
             NEW_VERSION="$MAJOR.$MINOR.$PATCH"
             SHOULD_PUBLISH="true"
           elif [ "$HTTP_STATUS" = "404" ]; then
-            # Verze ještě neexistuje, ale můžeme chtít navýšit podle typu
             if [ "$VERSION_TYPE" = "major" ]; then
               MAJOR=$((MAJOR + 1))
               MINOR=0
@@ -99,7 +101,6 @@ jobs:
             NEW_VERSION="$MAJOR.$MINOR.$PATCH"
             SHOULD_PUBLISH="true"
           else
-            # Nějaký problém s npm registry
             SHOULD_PUBLISH="false"
             NEW_VERSION="$VERSION"
             echo "Failed to check NPM registry, HTTP status: $HTTP_STATUS"
@@ -122,7 +123,6 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # Použijeme actions/github-script pro práci s GitHub API
       - name: Create Git Tag and Release
         if: steps.version_check.outputs.SHOULD_PUBLISH == 'true'
         uses: actions/github-script@v6
@@ -134,7 +134,6 @@ jobs:
             const tagName = `v${newVersion}`;
 
             try {
-              // Vytvoření tagu
               await github.rest.git.createRef({
                 owner,
                 repo,
@@ -142,7 +141,6 @@ jobs:
                 sha: context.sha
               });
               
-              // Vytvoření release
               await github.rest.repos.createRelease({
                 owner,
                 repo,
@@ -156,5 +154,4 @@ jobs:
               console.log(`Successfully created tag and release for ${tagName}`);
             } catch (error) {
               console.error(`Error creating tag or release: ${error.message}`);
-              // Neukončíme workflow chybou, protože publikování na npm mohlo proběhnout úspěšně
             }
