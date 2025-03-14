@@ -38,13 +38,33 @@ jobs:
         id: extract_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
+      - name: Check if version exists on npm
+        id: npm_version_check
+        run: |
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://registry.npmjs.org/firestore-helper-ts/${{ steps.extract_version.outputs.VERSION }})
+          if [ "$HTTP_STATUS" == "200" ]; then
+            echo "EXISTS=true" >> $GITHUB_OUTPUT
+            echo "Version ${{ steps.extract_version.outputs.VERSION }} already exists on npm registry."
+          else
+            echo "EXISTS=false" >> $GITHUB_OUTPUT
+            echo "Version ${{ steps.extract_version.outputs.VERSION }} does not exist yet."
+          fi
+
       - name: Update package version
+        if: steps.npm_version_check.outputs.EXISTS == 'false'
         run: npm version ${{ steps.extract_version.outputs.VERSION }} --no-git-tag-version
 
       - name: Publish to npm
+        if: steps.npm_version_check.outputs.EXISTS == 'false'
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Skip npm publish for existing version
+        if: steps.npm_version_check.outputs.EXISTS == 'true'
+        run: |
+          echo "Skipping npm publish because version ${{ steps.extract_version.outputs.VERSION }} already exists."
+          echo "Consider creating a new tag with a different version number."
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
