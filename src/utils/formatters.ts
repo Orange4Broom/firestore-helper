@@ -50,5 +50,15 @@ export function joinPath(path: string, docId?: string): string {
     return path;
   }
 
-  return `${path}/${docId}`;
+  // Pokud je path prázdný, vrátit pouze docId (bez lomítka na začátku)
+  if (path === "") {
+    return docId.startsWith("/") ? docId.substring(1) : docId;
+  }
+
+  // Odstranit koncové lomítko z path
+  const cleanPath = path.endsWith("/") ? path.slice(0, -1) : path;
+  // Odstranit počáteční lomítko z docId
+  const cleanDocId = docId.startsWith("/") ? docId.substring(1) : docId;
+
+  return `${cleanPath}/${cleanDocId}`;
 }

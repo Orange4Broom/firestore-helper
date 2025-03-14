@@ -1,3 +1,4 @@
+import { describe, test, expect, jest, afterEach } from "@jest/globals";
 import {
   initializeFirebase,
   getFirebaseInstance,
@@ -6,8 +7,14 @@ import {
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
-jest.mock("firebase/app");
-jest.mock("firebase/firestore");
+// Mock moduly
+jest.mock("firebase/app", () => ({
+  initializeApp: jest.fn().mockReturnValue({ name: "test-app" }),
+}));
+
+jest.mock("firebase/firestore", () => ({
+  getFirestore: jest.fn().mockReturnValue({ name: "test-firestore" }),
+}));
 
 describe("Firebase Core Functions", () => {
   const mockConfig = {
@@ -18,12 +25,17 @@ describe("Firebase Core Functions", () => {
 
   afterEach(() => {
     resetFirebase();
+    jest.clearAllMocks();
   });
 
   test("initializeFirebase should call initializeApp with correct config", () => {
-    initializeFirebase(mockConfig);
+    const result = initializeFirebase(mockConfig);
     expect(initializeApp).toHaveBeenCalledWith(mockConfig);
     expect(getFirestore).toHaveBeenCalled();
+    expect(result).toEqual({
+      app: { name: "test-app" },
+      firestore: { name: "test-firestore" },
+    });
   });
 
   test("getFirebaseInstance should throw error if not initialized", () => {

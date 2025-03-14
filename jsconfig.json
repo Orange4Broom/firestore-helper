@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "node",
+    "target": "es2020",
+    "jsx": "react",
+    "strictNullChecks": true,
+    "strictFunctionTypes": true
+  },
+  "exclude": [
+    "node_modules",
+    "**/node_modules/*"
+  ]
+} 
