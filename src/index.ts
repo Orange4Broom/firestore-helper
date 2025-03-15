@@ -9,8 +9,14 @@ export {
   resetFirebase as reset,
 } from "./core/firebase";
 
+// Import listenData directly from its file
+import { listenData } from "./core/operations/listenData";
+
 // Přímý export funkcí pro práci s Firestore
 export { getData, updateData, createData, deleteData } from "./core/operations";
+
+// Export listenData directly
+export { listenData };
 
 // Alias exporty pro kompatibilitu a přehlednost
 export {
@@ -20,6 +26,9 @@ export {
   // Pro lepší kompatibilitu s TypeScript a ESM používáme removeDoc místo delete (které je rezervované klíčové slovo)
   deleteData as removeDoc,
 } from "./core/operations";
+
+// Export listen as an alias for listenData
+export const listen = listenData;
 
 export { formatDocument, formatCollection } from "./utils/formatters";
 
@@ -41,6 +50,7 @@ const FirestoreHelper = {
   delete: deleteData,
   // Stejná funkce pod alternativním názvem pro snazší použití
   removeDoc: deleteData,
+  listen: listenData,
   formatDocument,
   formatCollection,
 };

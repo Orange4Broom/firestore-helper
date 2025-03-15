@@ -15,6 +15,7 @@
   - [Retrieve Data](#3-retrieve-data)
   - [Update a Document](#4-update-a-document)
   - [Delete a Document](#5-delete-a-document)
+  - [Real-time Listeners](#6-real-time-listeners)
 - [🌟 Examples](#-examples)
 - [🦺 TypeScript Support](#-typescript-support)
 - [📋 Complete CRUD Application](#-complete-crud-application)
@@ -42,6 +43,8 @@ pnpm add firestore-helper-ts
 - ✅ **Flexible** - support for querying, filtering, and sorting
 - ✅ **Consistent error handling** - unified result format
 - ✅ **Support for all modern frameworks** - React, Next.js, Vue.js, and more
+- ✅ **Real-time listeners** - subscribe to data changes using Firestore onSnapshot
+- ✅ **Unified API** - CRUD operations and real-time listening share consistent patterns
 
 ## 📚 Quick Start
 
@@ -144,6 +147,94 @@ await removeDoc({
 });
 ```
 
+### 6. Real-time Listeners
+
+```typescript
+import { listen } from "firestore-helper-ts";
+
+// Listen to a single document
+const unsubscribe = listen({
+  path: "users",
+  docId: "abc123",
+  onNext: (userData) => {
+    // Runs whenever the document changes
+    console.log("User data updated:", userData);
+    updateUI(userData);
+  },
+  onError: (error) => {
+    console.error("Error listening to user:", error);
+  },
+});
+
+// Listen to a collection with filters
+const unsubscribeCollection = listen({
+  path: "users",
+  where: [["isActive", "==", true]],
+  orderBy: [["lastActive", "desc"]],
+  limit: 10,
+  onNext: (users) => {
+    console.log("Active users updated:", users);
+    updateUsersList(users);
+  },
+});
+
+// Stop listening when no longer needed
+// For example when component unmounts
+unsubscribe();
+unsubscribeCollection();
+```
+
+### 7. CRUD with Real-time Updates
+
+You can perform CRUD operations and immediately get real-time updates instead of a one-time fetch:
+
+```typescript
+import { create, update, removeDoc } from "firestore-helper-ts";
+
+// Create a document and listen for changes
+const unsubscribeCreate = await create({
+  path: "posts",
+  data: {
+    title: "New Post",
+    content: "Post content...",
+    createdAt: new Date(),
+  },
+  useListener: true, // Enable real-time listening
+  onNext: (post) => {
+    console.log("Post created or updated:", post);
+    updateUI(post);
+  },
+});
+
+// Update a document and listen for changes
+const unsubscribeUpdate = await update({
+  path: "posts",
+  docId: "post123",
+  data: { likes: 42 },
+  useListener: true,
+  onNext: (post) => {
+    console.log("Post updated:", post);
+    updateLikesCounter(post.likes);
+  },
+});
+
+// Delete a document and listen for collection changes
+const unsubscribeDelete = await removeDoc({
+  path: "posts",
+  docId: "post123",
+  useListener: true,
+  onNext: (remainingPosts) => {
+    console.log("Posts after deletion:", remainingPosts);
+    updatePostsList(remainingPosts);
+  },
+});
+
+// Later, when you no longer need updates:
+unsubscribeCreate();
+unsubscribeUpdate();
+unsubscribeDelete();
+```
+
 ## 🔄 Import Methods
 
 The library offers flexibility when importing functions:
@@ -156,6 +247,7 @@ import {
   updateData,
   createData,
   deleteData,
+  listenData,
 } from "firestore-helper-ts";
 
 // Usage
@@ -165,7 +257,7 @@ const result = await getData({ path: "users", docId: "abc123" });
 ### Short Aliases (recommended)
 
 ```typescript
-import { get, update, create, removeDoc } from "firestore-helper-ts";
+import { get, update, create, removeDoc, listen } from "firestore-helper-ts";
 
 // Usage
 const result = await get({ path: "users", docId: "abc123" });
@@ -202,7 +294,7 @@ For more details and instructions on running these examples, check the [examples
 With TypeScript, you can define types for your data:
 
 ```typescript
-import { get, create } from "firestore-helper-ts";
+import { get, create, listen } from "firestore-helper-ts";
 
 // Type definition
 interface User {
@@ -213,22 +305,24 @@ interface User {
   createdAt: Date;
 }
 
-// Using generic types
+// Using generic types with get
 const result = await get<User>({
   path: "users",
   docId: "abc123",
 });
 
-// result.data will be typed as User | null
-if (result.data) {
-  const user = result.data;
-  console.log(`Name: ${user.name}`);
-
-  // TypeScript checks types!
-  if (user.isPremium) {
-    // ...
-  }
-}
+// Using generic types with real-time listeners
+const unsubscribe = listen<User>({
+  path: "users",
+  docId: "abc123",
+  onNext: (user) => {
+    // 'user' is properly typed as User
+    console.log(`User ${user.name} updated`);
+    if (user.isPremium) {
+      showPremiumFeatures();
+    }
+  },
+});
 ```
 
 ## 📋 Complete CRUD Application
@@ -240,6 +334,7 @@ import {
   create,
   update,
   removeDoc,
+  listen,
   Result,
 } from "firestore-helper-ts";
 
@@ -314,6 +409,22 @@ async function deleteProduct(productId: string): Promise<boolean> {
   return !result.error;
 }
 
+// Listen to stock changes
+function listenToStockChanges(
+  productId: string,
+  callback: (stock: number) => void
+): () => void {
+  return listen<Product>({
+    path: "products",
+    docId: productId,
+    onNext: (product) => {
+      if (product) {
+        callback(product.stock);
+      }
+    },
+  });
+}
+
 // Using the functions
 async function manageInventory() {
   // Create product
@@ -334,6 +445,15 @@ async function manageInventory() {
   // Get products by category
   const phones = await getProductsByCategory("phones");
   console.log(`Found ${phones.length} phones`);
+
+  // Set up real-time listener for stock changes
+  const unsubscribe = listenToStockChanges(newProductId!, (newStock) => {
+    console.log(`Stock changed: ${newStock} units available`);
+    updateStockDisplay(newStock);
+  });
+
+  // Later, when no longer needed
+  unsubscribe();
 
   // Delete product
   await deleteProduct(newProductId!);
@@ -372,7 +492,7 @@ result.data?.forEach((user) => {
 ### Working with Subcollections
 
 ```typescript
-import { create, get, update } from "firestore-helper-ts";
+import { create, get, update, listen } from "firestore-helper-ts";
 
 // Create a parent document
 const { data: organization } = await create({
@@ -391,6 +511,69 @@ await create({
 const { data: departments } = await get({
   path: `organizations/${orgId}/departments`,
 });
+
+// Listen to changes in departments
+const unsubscribe = listen({
+  path: `organizations/${orgId}/departments`,
+  onNext: (departments) => {
+    console.log("Departments updated:", departments);
+    updateDepartmentsList(departments);
+  },
+});
+```
+
+### Real-time Dashboard Example
+
+```typescript
+import { listen } from "firestore-helper-ts";
+
+function setupDashboard() {
+  // Listen to active orders
+  const unsubscribeOrders = listen({
+    path: "orders",
+    where: [["status", "==", "active"]],
+    orderBy: [["createdAt", "desc"]],
+    onNext: (orders) => {
+      updateOrdersDisplay(orders);
+
+      // Calculate total revenue
+      const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+      updateRevenueDisplay(totalRevenue);
+    },
+  });
+
+  // Listen to inventory levels
+  const unsubscribeInventory = listen({
+    path: "products",
+    where: [["stock", "<", 10]], // Low stock items
+    onNext: (lowStockProducts) => {
+      updateLowStockAlerts(lowStockProducts);
+    },
+  });
+
+  // Listen to new user registrations
+  const unsubscribeUsers = listen({
+    path: "users",
+    orderBy: [["createdAt", "desc"]],
+    limit: 5,
+    onNext: (recentUsers) => {
+      updateRecentUsersWidget(recentUsers);
+    },
+  });
+
+  // Return a function to unsubscribe from all listeners
+  return () => {
+    unsubscribeOrders();
+    unsubscribeInventory();
+    unsubscribeUsers();
+  };
+}
+
+// In a React component:
+// useEffect(() => {
+//   const unsubscribeAll = setupDashboard();
+//   return () => unsubscribeAll();
+// }, []);
 ```
 
 ### Error Handling Strategies
@@ -416,6 +599,34 @@ try {
 } catch (e) {
   console.error("Unexpected error:", e);
 }
+```
+
+### Changes to Refetch Parameter
+
+The `refetch` parameter in CRUD operations has been deprecated in favor of real-time listeners:
+
+```typescript
+// Old way (still supported but deprecated)
+const result = await update({
+  path: "users",
+  docId: "user123",
+  data: { status: "active" },
+  refetch: true, // Deprecated
+});
+
+// New way - use real-time listener
+const unsubscribe = await update({
+  path: "users",
+  docId: "user123",
+  data: { status: "active" },
+  useListener: true,
+  onNext: (userData) => {
+    console.log("User data updated:", userData);
+  },
+});
+
+// Stop listening when no longer needed
+unsubscribe();
 ```
 
 ## 🧪 Testing

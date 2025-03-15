@@ -38,6 +38,29 @@ export interface GetOptions {
 }
 
 /**
+ * Options for listening to real-time updates from Firestore
+ * Used by listenData/listen function
+ *
+ * @template T - Type of the data being listened to
+ */
+export interface ListenOptions<T = any> {
+  /** Path to the collection or document in Firestore */
+  path: string;
+  /** Optional document ID when listening to a single document */
+  docId?: string;
+  /** Optional array of filter conditions in format [field, operator, value] */
+  where?: Array<[string, WhereFilterOp, any]>;
+  /** Optional array of sort conditions in format [field, direction] */
+  orderBy?: Array<[string, OrderByDirection?]>;
+  /** Optional maximum number of documents to return */
+  limit?: number;
+  /** Callback function to receive data updates */
+  onNext: (data: T) => void;
+  /** Optional callback function to handle errors */
+  onError?: (error: Error) => void;
+}
+
+/**
  * Options for updating or creating data in Firestore
  * Used by updateData/update function
  */
@@ -50,8 +73,17 @@ export interface UpdateOptions {
   data: Record<string, any>;
   /** Whether to merge with existing data (true) or overwrite the document (false) */
   merge?: boolean;
-  /** Whether to automatically retrieve updated data after successful update */
+  /**
+   * @deprecated Use useListener with onNext callback instead
+   * Whether to automatically retrieve updated data after successful update
+   */
   refetch?: boolean;
+  /**
+   * Silent mode - if true, the function will not return data, only potential errors
+   * This is ideal for use with real-time listeners where you don't need to refetch data
+   * after updates because the existing listener will automatically receive updates.
+   */
+  silent?: boolean;
 }
 
 /**
@@ -63,8 +95,17 @@ export interface DeleteOptions {
   path: string;
   /** Document ID when deleting a document in a collection */
   docId?: string;
-  /** Whether to automatically retrieve parent collection data after successful deletion */
+  /**
+   * @deprecated Use useListener with onNext callback instead
+   * Whether to automatically retrieve parent collection data after successful deletion
+   */
   refetch?: boolean;
+  /**
+   * Silent mode - if true, the function will not return data, only potential errors
+   * This is ideal for use with real-time listeners where you don't need to refetch data
+   * after deletion because the existing listener will automatically receive updates.
+   */
+  silent?: boolean;
 }
 
 /**

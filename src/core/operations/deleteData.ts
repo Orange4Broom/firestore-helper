@@ -1,73 +1,120 @@
-import { doc, deleteDoc, DocumentReference } from "firebase/firestore";
+import { doc, deleteDoc } from "firebase/firestore";
 import { getFirebaseInstance } from "../firebase";
-import { joinPath } from "../../utils/formatters";
 import { DeleteOptions, Result } from "../../types";
 import { getData } from "./getData";
+import { listenData } from "./listenData";
+import { joinPath } from "../../utils/formatters";
 
 /**
  * Deletes a document from Firestore
  *
+ * @template T - Type of data returned after deletion (typically the parent collection)
  * @param {DeleteOptions} options - Options for deleting the document
  * @param {string} options.path - Path to the collection containing the document
- * @param {string} [options.docId] - ID of the document to delete; if not provided, the path is assumed to contain the document ID
- * @param {boolean} [options.refetch=true] - Whether to retrieve the parent collection data after deletion
+ * @param {string} options.docId - ID of the document to delete
+ * @param {boolean} [options.silent=false] - If true, the function will not return any data, only errors (good for use with real-time listeners)
+ * @param {boolean} [options.useListener=false] - Whether to return a listener for the parent collection
  *
- * @returns {Promise<Result<null>>} Result object indicating success or failure
+ * @returns {Promise<Result<T> | (() => void) | Result<null>>} Result object containing the parent collection after deletion, an unsubscribe function if useListener is true, or just Result with error if silent is true
  *
  * @example
- * // Delete a document by path and ID
+ * // Delete a user with one-time confirmation
  * const result = await deleteData({
  *   path: 'users',
  *   docId: 'user123'
  * });
  *
  * if (!result.error) {
- *   console.log('Document successfully deleted');
+ *   console.log('User deleted successfully');
  * }
  *
  * @example
- * // Delete a document using a full path
+ * // Delete in silent mode - good when using with real-time listeners
  * const result = await deleteData({
- *   path: 'users/user123',
- *   refetch: false
+ *   path: 'users',
+ *   docId: 'user123',
+ *   silent: true // Don't return updated collection, only potential errors
  * });
+ *
+ * if (!result.error) {
+ *   console.log('Deletion successful');
+ *   // Your existing listener will automatically receive the update
+ * }
+ *
+ * @example
+ * // Delete a user and listen to collection changes
+ * const unsubscribe = await deleteData({
+ *   path: 'users',
+ *   docId: 'user123',
+ *   useListener: true,
+ *   onNext: (remainingUsers) => {
+ *     console.log('Updated users list:', remainingUsers);
+ *     updateUsersList(remainingUsers);
+ *   }
+ * });
+ *
+ * // Later, when you no longer need updates:
+ * unsubscribe();
  */
-export async function deleteData(
-  options: DeleteOptions
-): Promise<Result<null>> {
-  const { path, docId, refetch = true } = options;
+export async function deleteData<T = any>(
+  options: DeleteOptions & {
+    useListener?: boolean;
+    onNext?: (data: T) => void;
+    onError?: (error: Error) => void;
+    silent?: boolean;
+  }
+): Promise<Result<T> | (() => void) | Result<null>> {
+  const {
+    path,
+    docId,
+    useListener = false,
+    silent = false,
+    onNext,
+    onError,
+  } = options;
 
   try {
+    if (!docId) {
+      throw new Error("Document ID is required for deletion");
+    }
+
     const { firestore } = getFirebaseInstance();
 
-    let docReference: DocumentReference;
+    // Create a reference to the document and delete it
+    const docRef = doc(firestore, joinPath(path, docId));
+    await deleteDoc(docRef);
 
-    // Create a reference to the document
-    if (docId) {
-      docReference = doc(firestore, joinPath(path, docId));
-    } else {
-      // If no docId is provided, assume the path already contains the document ID
-      docReference = doc(firestore, path);
+    // Silent mode - don't return data, just success/error status
+    if (silent) {
+      return { data: null, error: null, loading: false };
     }
 
-    // Delete the document
-    await deleteDoc(docReference);
-
-    // If refetch is true, try to retrieve updated data
-    if (refetch) {
-      // Get the parent collection
-      const parentPath = path.split("/").slice(0, -1).join("/");
-
-      if (parentPath) {
-        return await getData({
-          path: parentPath,
-        });
+    // If using a listener, set up real-time updates for the parent collection
+    if (useListener) {
+      if (!onNext) {
+        throw new Error("onNext callback is required when useListener is true");
       }
+
+      return listenData<T>({
+        path,
+        onNext,
+        onError,
+      });
     }
 
-    return { data: null, error: null, loading: false };
+    // Otherwise do a one-time fetch of the parent collection (previous behavior)
+    const result = await getData<T>({
+      path,
+    });
+
+    return result;
   } catch (error) {
     console.error("Error deleting data:", error);
+
+    if (onError && error instanceof Error) {
+      onError(error);
+    }
+
     return { data: null, error: error as Error, loading: false };
   }
 }

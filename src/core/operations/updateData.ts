@@ -1,79 +1,182 @@
-import { doc, setDoc, updateDoc, DocumentReference } from "firebase/firestore";
+import { doc, setDoc, collection, updateDoc } from "firebase/firestore";
 import { getFirebaseInstance } from "../firebase";
-import { joinPath } from "../../utils/formatters";
 import { UpdateOptions, Result } from "../../types";
 import { getData } from "./getData";
+import { listenData } from "./listenData";
+import { joinPath } from "../../utils/formatters";
 
 /**
- * Updates or creates a document in Firestore
+ * Updates an existing document or collection in Firestore
  *
- * @template T - Type of the returned document data
+ * @template T - Type of the document data
  * @param {UpdateOptions} options - Options for updating the document
- * @param {string} options.path - Path to the collection containing the document
- * @param {string} options.docId - ID of the document to update
+ * @param {string} options.path - Path to the collection or document to update
+ * @param {string} [options.docId] - Document ID if updating a document in a collection
  * @param {Record<string, any>} options.data - Data to update in the document
- * @param {boolean} [options.merge=true] - Whether to merge data with existing document (true) or overwrite it (false)
- * @param {boolean} [options.refetch=true] - Whether to retrieve the updated document after update
+ * @param {boolean} [options.merge=true] - Whether to merge with existing data (true) or overwrite the document (false)
+ * @param {boolean} [options.silent=false] - If true, the function will not return any data, only errors (good for use with real-time listeners)
+ * @param {boolean} [options.useListener=false] - Whether to return a listener for the document instead of a one-time fetch
  *
- * @returns {Promise<Result<T>>} Result object containing the updated document data
+ * @returns {Promise<Result<T> | (() => void) | Result<null>>} Result object containing the updated document, an unsubscribe function if useListener is true, or just Result with error if silent is true
  *
  * @example
- * // Update user data with merge
+ * // Update a user's status with one-time data retrieval
  * const result = await updateData({
  *   path: 'users',
  *   docId: 'user123',
  *   data: {
- *     lastLogin: new Date(),
- *     loginCount: 5
- *   },
- *   merge: true  // Default, will only update these fields
+ *     isActive: false,
+ *     lastLogin: new Date()
+ *   }
  * });
  *
+ * if (!result.error) {
+ *   console.log('User updated successfully');
+ * }
+ *
  * @example
- * // Replace document entirely (no merge)
+ * // Update in silent mode - good when using with real-time listeners
  * const result = await updateData({
- *   path: 'settings',
+ *   path: 'users',
  *   docId: 'user123',
- *   data: { theme: 'dark', notifications: false },
- *   merge: false  // Will replace the entire document
+ *   data: {
+ *     name: 'New Name'
+ *   },
+ *   silent: true // Don't return updated data, only potential errors
  * });
+ *
+ * if (!result.error) {
+ *   console.log('Update successful');
+ *   // Your existing listener will automatically receive the update
+ * }
+ *
+ * @example
+ * // Update a user's status with real-time updates
+ * const unsubscribe = await updateData({
+ *   path: 'users',
+ *   docId: 'user123',
+ *   data: {
+ *     isActive: false,
+ *     lastLogin: new Date()
+ *   },
+ *   useListener: true,
+ *   onNext: (userData) => {
+ *     console.log('User data updated:', userData);
+ *   }
+ * });
+ *
+ * // Later, when you no longer need updates:
+ * unsubscribe();
  */
 export async function updateData<T = any>(
-  options: UpdateOptions
-): Promise<Result<T>> {
-  const { path, docId, data, merge = true, refetch = true } = options;
+  options: UpdateOptions & {
+    useListener?: boolean;
+    onNext?: (data: T) => void;
+    onError?: (error: Error) => void;
+    silent?: boolean;
+  }
+): Promise<Result<T> | (() => void) | Result<null>> {
+  const {
+    path,
+    docId,
+    data,
+    merge = true,
+    useListener = false,
+    silent = false,
+    onNext,
+    onError,
+  } = options;
 
   try {
     const { firestore } = getFirebaseInstance();
 
-    let docReference: DocumentReference;
-
-    // Create a reference to the document
+    // If docId is provided, we're updating a specific document in a collection
     if (docId) {
-      docReference = doc(firestore, joinPath(path, docId));
-    } else {
-      // If no docId is provided, assume the path already contains the document ID
-      docReference = doc(firestore, path);
-    }
+      const docRef = doc(firestore, joinPath(path, docId));
 
-    // Update the document
-    if (merge) {
-      await updateDoc(docReference, data);
-    } else {
-      await setDoc(docReference, data);
-    }
+      if (merge) {
+        await updateDoc(docRef, data);
+      } else {
+        await setDoc(docRef, data);
+      }
 
-    // If refetch is true, retrieve the updated data
-    if (refetch) {
-      return await getData<T>({
+      // Silent mode - don't return data, just success/error status
+      if (silent) {
+        return { data: null, error: null, loading: false };
+      }
+
+      // If using a listener, set up real-time updates
+      if (useListener) {
+        if (!onNext) {
+          throw new Error(
+            "onNext callback is required when useListener is true"
+          );
+        }
+
+        return listenData<T>({
+          path,
+          docId,
+          onNext,
+          onError,
+        });
+      }
+
+      // Otherwise do a one-time fetch (previous behavior)
+      const result = await getData<T>({
         path,
-        docId: docId || docReference.id,
+        docId,
       });
-    }
 
-    return { data: null, error: null, loading: false };
+      return result;
+    } else {
+      // If no docId, we're updating a document at the direct path
+      const docRef = doc(firestore, path);
+
+      if (merge) {
+        await updateDoc(docRef, data);
+      } else {
+        await setDoc(docRef, data);
+      }
+
+      // Silent mode - don't return data, just success/error status
+      if (silent) {
+        return { data: null, error: null, loading: false };
+      }
+
+      // If using a listener, set up real-time updates
+      if (useListener) {
+        if (!onNext) {
+          throw new Error(
+            "onNext callback is required when useListener is true"
+          );
+        }
+
+        const pathParts = path.split("/");
+        const documentPath = pathParts.slice(0, -1).join("/");
+        const documentId = pathParts[pathParts.length - 1];
+
+        return listenData<T>({
+          path: documentPath,
+          docId: documentId,
+          onNext,
+          onError,
+        });
+      }
+
+      // Otherwise do a one-time fetch (previous behavior)
+      const result = await getData<T>({
+        path,
+      });
+
+      return result;
+    }
   } catch (error) {
     console.error("Error updating data:", error);
+
+    if (onError && error instanceof Error) {
+      onError(error);
+    }
+
     return { data: null, error: error as Error, loading: false };
   }
 }

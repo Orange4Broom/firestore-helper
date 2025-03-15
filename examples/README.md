@@ -1,43 +1,125 @@
-# Příklady použití firestore-helper-ts
+# Examples of using firestore-helper-ts
 
-V tomto adresáři najdete různé příklady implementace a použití knihovny `firestore-helper-ts` v různých frameworcích a prostředích.
+This directory contains various implementation examples and use cases of the `firestore-helper-ts` library across different frameworks and environments.
 
-## Obsah adresáře
+## Directory Contents
 
-### Základní příklady
+### Basic Examples
 
-- `basic.ts` - Základní příklad použití knihovny s TypeScriptem (bez frameworku)
-- `react-example.tsx` - Jednoduchý příklad integrace s React
+- `basic.ts` - Basic example of using the library with TypeScript (without a framework)
+- `react-example.tsx` - Simple example of React integration
+- `realtime-listener-example.ts` - Demonstration of using real-time listeners with onSnapshot
+- `realtime-crud-example.ts` - Demonstration of integrating CRUD operations with real-time listeners
+- `user-name-update-example.ts` - Practical example of updating a user's name with real-time list updates
+- `simple-realtime-updates.ts` - **RECOMMENDED APPROACH** - Simplified approach to real-time updates with the `silent` parameter
 
-### Pokročilé příklady podle frameworku
+### Advanced Examples by Framework
 
 #### React
 
-- `react-hooks-example/UserManagement.tsx` - Moderní React aplikace využívající hooks a Context API
+- `react-hooks-example/UserManagement.tsx` - Modern React application using hooks and Context API
 
 #### Next.js
 
-- `nextjs-example/pages/users.tsx` - Příklad implementace v Next.js
+- `nextjs-example/pages/users.tsx` - Implementation example in Next.js
 
 #### Vue.js
 
-- `vue-example/UserManagement.vue` - Příklad použití s Vue.js (Vue 3 s Composition API)
+- `vue-example/UserManagement.vue` - Example of using with Vue.js (Vue 3 with Composition API)
 
-## Jak spustit příklady
+## How to Run the Examples
 
-Většina příkladů je určena jako ukázka kódu a není přímo spustitelná bez odpovídajícího projektu a infrastruktury. Pro použití těchto příkladů ve vlastní aplikaci:
+Most examples are meant as code demonstrations and are not directly executable without the appropriate project and infrastructure. To use these examples in your own application:
 
-1. Vytvořte projekt s příslušným frameworkem (React, Next.js, Vue.js)
-2. Nainstalujte knihovnu `firestore-helper-ts` a Firebase:
+1. Create a project with the appropriate framework (React, Next.js, Vue.js)
+2. Install the `firestore-helper-ts` library and Firebase:
    ```
    npm install firestore-helper-ts firebase
    ```
-3. Zkopírujte a upravte kód podle potřeb vaší aplikace
-4. Nahraďte konfigurační údaje Firebase vlastními hodnotami
+3. Copy and modify the code according to your application's needs
+4. Replace the Firebase configuration details with your own values
 
-## Firebase konfigurace
+### Running the Real-Time Listeners Example
 
-Všechny příklady vyžadují konfiguraci Firebase. V reálné aplikaci byste měli použít vlastní konfigurační údaje:
+You can run the `realtime-listener-example.ts` example directly from the command line if you have a properly configured environment:
+
+```bash
+# First build the library
+npm run build
+
+# Then run the example
+npx ts-node examples/realtime-listener-example.ts
+```
+
+This example demonstrates the basic functions of real-time listeners and shows how to:
+
+- Set up a listener for a specific document
+- Set up a listener for a collection of documents with filtering and sorting
+- React to data changes in real time
+- Properly terminate listeners when they are no longer needed
+
+### Running the CRUD Operations with Real-Time Listeners Example
+
+The `realtime-crud-example.ts` example shows how to combine CRUD operations with real-time listeners:
+
+```bash
+# First build the library
+npm run build
+
+# Then run the example
+npx ts-node examples/realtime-crud-example.ts
+```
+
+This example demonstrates:
+
+- Creating a document with immediate setup of a listener to track changes
+- Updating a document with real-time feedback
+- Deleting a document while monitoring changes in the parent collection
+- Properly terminating all listeners
+
+### Running the User Name Update Example
+
+The `user-name-update-example.ts` example shows how to combine data updates with real-time UI updates:
+
+```bash
+# First build the library
+npm run build
+
+# Then run the example
+npx ts-node examples/user-name-update-example.ts
+```
+
+This example demonstrates:
+
+- Comparison of the old approach with `refetch` and the new approach with `useListener`
+- How to update a user's name and immediately reflect changes in the list
+- More efficient data management with real-time listeners
+- Advantages of the new approach for developing reactive applications
+
+### Running the Simplified Real-Time Updates Example (recommended)
+
+The `simple-realtime-updates.ts` example shows the simplest and most efficient way to implement real-time updates:
+
+```bash
+# First build the library
+npm run build
+
+# Then run the example
+npx ts-node examples/simple-realtime-updates.ts
+```
+
+This example demonstrates:
+
+- Setting up a real-time listener for automatic UI updates
+- Updating data in "silent mode" - without unnecessary data retrieval
+- How Firestore automatically propagates changes to all active listeners
+- Sorting and filtering collections in real-time
+
+For a detailed explanation of this approach, read [SIMPLE-REALTIME-README.md](./SIMPLE-REALTIME-README.md).
+
+## Firebase Configuration
+
+All examples require Firebase configuration. In a real application, you should use your own configuration details:
 
 ```typescript
 const firebaseConfig = {
@@ -50,28 +132,29 @@ const firebaseConfig = {
 };
 ```
 
-Pro vyšší bezpečnost doporučujeme:
+For increased security, we recommend:
 
-- V produkčním prostředí používat proměnné prostředí
-- U React aplikací používat proměnné začínající s `REACT_APP_`
-- U Next.js používat proměnné začínající s `NEXT_PUBLIC_`
-- U Vue.js (s Vite) používat proměnné začínající s `VITE_`
+- Using environment variables in production environments
+- For React applications, using variables starting with `REACT_APP_`
+- For Next.js, using variables starting with `NEXT_PUBLIC_`
+- For Vue.js (with Vite), using variables starting with `VITE_`
 
-## Poznámky k použití
+## Usage Notes
 
 ### TypeScript
 
-Všechny příklady jsou implementovány s TypeScriptem pro lepší typovou kontrolu a vývojovou zkušenost. Knihovna `firestore-helper-ts` plně podporuje typové definice.
+All examples are implemented with TypeScript for better type checking and development experience. The `firestore-helper-ts` library fully supports type definitions.
 
-### Struktura dat
+### Data Structure
 
-V příkladech používáme různé kolekce a struktury dat jako demonstraci flexibility knihovny. V reálné aplikaci byste měli navrhnout vlastní datové struktury podle potřeb aplikace.
+In the examples, we use various collections and data structures to demonstrate the flexibility of the library. In a real application, you should design your own data structures according to the needs of your application.
 
-### Rozšíření příkladů
+### Extending the Examples
 
-Tyto příklady slouží jako základní ukázky. Pro složitější aplikace zvažte implementaci:
+These examples serve as basic demonstrations. For more complex applications, consider implementing:
 
-- Autentizace uživatelů pomocí Firebase Authentication
-- Složitějších dotazů a filtrování
-- Implementace transakcí a dávkových operací
-- Optimalizace výkonu při načítání dat
+- User authentication using Firebase Authentication
+- More complex queries and filtering
+- Implementation of transactions and batch operations
+- Performance optimization when loading data
+- Using real-time listeners to create reactive applications
