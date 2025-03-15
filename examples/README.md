@@ -12,6 +12,7 @@ This directory contains various implementation examples and use cases of the `fi
 - `realtime-crud-example.ts` - Demonstration of integrating CRUD operations with real-time listeners
 - `user-name-update-example.ts` - Practical example of updating a user's name with real-time list updates
 - `simple-realtime-updates.ts` - **RECOMMENDED APPROACH** - Simplified approach to real-time updates with the `silent` parameter
+- `error-handling-example.ts` - Advanced error handling with custom error types
 
 ### Advanced Examples by Framework
 
@@ -116,6 +117,26 @@ This example demonstrates:
 - Sorting and filtering collections in real-time
 
 For a detailed explanation of this approach, read [SIMPLE-REALTIME-README.md](./SIMPLE-REALTIME-README.md).
+
+### Running the Error Handling Example
+
+The `error-handling-example.ts` example demonstrates the comprehensive error handling system:
+
+```bash
+# First build the library
+npm run build
+
+# Then run the example
+npx ts-node examples/error-handling-example.ts
+```
+
+This example demonstrates:
+
+- How to use custom error types for better error handling
+- Checking specific error types (ValidationError, NotFoundError, etc.)
+- Using the handleError utility to convert generic errors to structured errors
+- Error handling in real-time listeners
+- Try-catch patterns with custom error types
 
 ## Firebase Configuration
 

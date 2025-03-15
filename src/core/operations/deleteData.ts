@@ -4,6 +4,7 @@ import { DeleteOptions, Result } from "../../types";
 import { getData } from "./getData";
 import { listenData } from "./listenData";
 import { joinPath } from "../../utils/formatters";
+import { handleError, reportError, ValidationError } from "../../errors";
 
 /**
  * Deletes a document from Firestore
@@ -64,6 +65,15 @@ export async function deleteData<T = any>(
     silent?: boolean;
   }
 ): Promise<Result<T> | (() => void) | Result<null>> {
+  // Validate required parameters
+  if (!options.path) {
+    const error = new ValidationError(
+      "Path parameter is required for deleteData"
+    );
+    reportError(error);
+    return { data: null, error, loading: false };
+  }
+
   const {
     path,
     docId,
@@ -75,7 +85,9 @@ export async function deleteData<T = any>(
 
   try {
     if (!docId) {
-      throw new Error("Document ID is required for deletion");
+      const error = new ValidationError("Document ID is required for deletion");
+      reportError(error);
+      return { data: null, error, loading: false };
     }
 
     const { firestore } = getFirebaseInstance();
@@ -92,7 +104,11 @@ export async function deleteData<T = any>(
     // If using a listener, set up real-time updates for the parent collection
     if (useListener) {
       if (!onNext) {
-        throw new Error("onNext callback is required when useListener is true");
+        const error = new ValidationError(
+          "onNext callback is required when useListener is true"
+        );
+        reportError(error);
+        return { data: null, error, loading: false };
       }
 
       return listenData<T>({
@@ -109,12 +125,13 @@ export async function deleteData<T = any>(
 
     return result;
   } catch (error) {
-    console.error("Error deleting data:", error);
+    const structuredError = handleError(error);
+    reportError(structuredError);
 
     if (onError && error instanceof Error) {
       onError(error);
     }
 
-    return { data: null, error: error as Error, loading: false };
+    return { data: null, error: structuredError, loading: false };
   }
 }

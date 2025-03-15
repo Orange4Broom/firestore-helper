@@ -3,6 +3,7 @@ import { getFirebaseInstance } from "../firebase";
 import { UpdateOptions, Result } from "../../types";
 import { getData } from "./getData";
 import { listenData } from "./listenData";
+import { handleError, reportError, ValidationError } from "../../errors";
 
 /**
  * Creates a new document in Firestore with an automatically generated ID
@@ -71,6 +72,23 @@ export async function createData<
     onError?: (error: Error) => void;
   }
 ): Promise<Result<T & { id: string }> | (() => void) | Result<{ id: string }>> {
+  // Validate required parameters
+  if (!options.path) {
+    const error = new ValidationError(
+      "Path parameter is required for createData"
+    );
+    reportError(error);
+    return { data: null, error, loading: false };
+  }
+
+  if (!options.data) {
+    const error = new ValidationError(
+      "Data parameter is required for createData"
+    );
+    reportError(error);
+    return { data: null, error, loading: false };
+  }
+
   const {
     path,
     data,
@@ -104,7 +122,11 @@ export async function createData<
     // If using a listener, set up real-time updates
     if (useListener) {
       if (!onNext) {
-        throw new Error("onNext callback is required when useListener is true");
+        const error = new ValidationError(
+          "onNext callback is required when useListener is true"
+        );
+        reportError(error);
+        return { data: null, error, loading: false };
       }
 
       return listenData<T & { id: string }>({
@@ -123,12 +145,13 @@ export async function createData<
 
     return result;
   } catch (error) {
-    console.error("Error creating data:", error);
+    const structuredError = handleError(error);
+    reportError(structuredError);
 
     if (onError && error instanceof Error) {
       onError(error);
     }
 
-    return { data: null, error: error as Error, loading: false };
+    return { data: null, error: structuredError, loading: false };
   }
 }

@@ -4,6 +4,7 @@ import { UpdateOptions, Result } from "../../types";
 import { getData } from "./getData";
 import { listenData } from "./listenData";
 import { joinPath } from "../../utils/formatters";
+import { handleError, reportError, ValidationError } from "../../errors";
 
 /**
  * Updates an existing document or collection in Firestore
@@ -76,6 +77,23 @@ export async function updateData<T = any>(
     silent?: boolean;
   }
 ): Promise<Result<T> | (() => void) | Result<null>> {
+  // Validate required parameters
+  if (!options.path) {
+    const error = new ValidationError(
+      "Path parameter is required for updateData"
+    );
+    reportError(error);
+    return { data: null, error, loading: false };
+  }
+
+  if (!options.data) {
+    const error = new ValidationError(
+      "Data parameter is required for updateData"
+    );
+    reportError(error);
+    return { data: null, error, loading: false };
+  }
+
   const {
     path,
     docId,
@@ -108,9 +126,11 @@ export async function updateData<T = any>(
       // If using a listener, set up real-time updates
       if (useListener) {
         if (!onNext) {
-          throw new Error(
+          const error = new ValidationError(
             "onNext callback is required when useListener is true"
           );
+          reportError(error);
+          return { data: null, error, loading: false };
         }
 
         return listenData<T>({
@@ -146,9 +166,11 @@ export async function updateData<T = any>(
       // If using a listener, set up real-time updates
       if (useListener) {
         if (!onNext) {
-          throw new Error(
+          const error = new ValidationError(
             "onNext callback is required when useListener is true"
           );
+          reportError(error);
+          return { data: null, error, loading: false };
         }
 
         const pathParts = path.split("/");
@@ -171,12 +193,13 @@ export async function updateData<T = any>(
       return result;
     }
   } catch (error) {
-    console.error("Error updating data:", error);
+    const structuredError = handleError(error);
+    reportError(structuredError);
 
     if (onError && error instanceof Error) {
       onError(error);
     }
 
-    return { data: null, error: error as Error, loading: false };
+    return { data: null, error: structuredError, loading: false };
   }
 }

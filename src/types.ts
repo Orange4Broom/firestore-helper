@@ -1,5 +1,6 @@
 import { FirebaseOptions, FirebaseApp } from "firebase/app";
 import { Firestore } from "firebase/firestore";
+import { FirestoreHelperError } from "./errors";
 
 /**
  * Firebase configuration options
@@ -140,7 +141,7 @@ export interface Result<T = any> {
   /** The retrieved, created, or updated data (null if operation failed) */
   data: T | null;
   /** Error object if the operation failed (null on success) */
-  error: Error | null;
+  error: FirestoreHelperError | null;
   /** Whether the operation is still in progress */
   loading: boolean;
 }

@@ -1,5 +1,16 @@
 # 🔥 Firestore Helper TS
 
+Simplify your work with Firestore and save dozens of coding hours! Firestore Helper TS solves common problems when working with Firestore:
+
+- 🚀 **Less code, more productivity** - reduces boilerplate code by 60-70%
+- 🛡️ **Type safety** - complete TypeScript support with generic types
+- 🔄 **Real-time updates** - simple API for working with onSnapshot listeners
+- 🧩 **Consistent data format** - unified approach to processing documents and collections
+- 🚦 **Structured error handling** - predictable and type-safe errors
+- 📦 **Minimalist size** - only essential functions without unnecessary dependencies
+
+Unlike direct use of the Firebase SDK, Firestore Helper significantly simplifies CRUD operations, provides a unified interface for working with data, and eliminates common sources of errors. Develop faster and more safely!
+
 > A simple and type-safe library for working with Firebase Firestore in TypeScript/JavaScript applications.
 
 [![npm version](https://img.shields.io/npm/v/firestore-helper-ts.svg)](https://www.npmjs.com/package/firestore-helper-ts)
@@ -22,6 +33,7 @@
 - [🚀 Advanced Usage](#-advanced-usage)
 - [🧪 Testing](#-testing)
 - [📄 License](#-license)
+- [Error Handling](#-error-handling)
 
 ## 🚀 Installation
 
@@ -580,24 +592,53 @@ function setupDashboard() {
 
 ```typescript
 import { get, create } from "firestore-helper-ts";
+import {
+  FirestoreHelperError,
+  ValidationError,
+  PermissionError,
+  NotFoundError,
+} from "firestore-helper-ts";
 
-// Using try/catch
 try {
   const result = await get({
     path: "users",
-    docId: "non-existent-id",
+    docId: "user123",
   });
 
   if (result.error) {
-    console.error("Error fetching data:", result.error.message);
-    // Handle the error appropriately
-    return;
-  }
+    // Definice handlerů s typovou bezpečností
+    const errorHandlers: Record<string, (error: FirestoreHelperError) => void> =
+      {
+        ValidationError: (err) => {
+          console.error("Invalid parameters:", err.message);
+          // Show form errors
+        },
+        PermissionError: (err) => {
+          console.error("Permission denied:", err.message);
+          // Redirect to login or show permission UI
+        },
+        NotFoundError: (err) => {
+          console.error("Document not found:", err.message);
+          // Show empty state or create new document
+        },
+      };
 
-  // Process data
-  console.log("User data:", result.data);
-} catch (e) {
-  console.error("Unexpected error:", e);
+    // Get error type and call appropriate handler
+    const errorType = result.error.constructor.name;
+    const handler =
+      errorHandlers[errorType] ||
+      ((err) => {
+        console.error("Unexpected error:", err.message, "Code:", err.code);
+      });
+
+    handler(result.error);
+  } else {
+    // Process result.data
+    console.log("User data:", result.data);
+  }
+} catch (error) {
+  // Catch any unexpected errors outside the FirestoreHelper system
+  console.error("Critical error:", error);
 }
 ```
 
@@ -659,3 +700,94 @@ This repository uses GitHub Actions to automate the development, testing, and re
 ## 📄 License
 
 ISC
+
+## Error Handling
+
+Firestore Helper TS includes a comprehensive error handling system that provides:
+
+1. **Structured error types** - Custom error classes for different scenarios like validation errors, network errors, etc.
+2. **Better type safety** - All errors implement a consistent interface with specific error codes
+3. **Improved debugging** - Detailed error messages and originating error tracking
+
+### Available Error Types
+
+```typescript
+// Base error for all Firestore Helper errors
+FirestoreHelperError;
+
+// Specific error types
+InitializationError; // Firebase initialization issues
+ValidationError; // Invalid parameters or configurations
+QueryError; // Problems with Firestore queries
+NotFoundError; // Document or collection not found
+PermissionError; // Access denied or insufficient permissions
+NetworkError; // Network connectivity issues
+TimeoutError; // Operation timeout
+```
+
+### Using Error Types in Your Code
+
+When using Firestore Helper functions, you can check for specific error types:
+
+```typescript
+import {
+  get,
+  FirestoreHelperError,
+  ValidationError,
+  PermissionError,
+  NotFoundError,
+} from "firestore-helper-ts";
+
+try {
+  const result = await get({ path: "users", docId: "user123" });
+
+  if (result.error) {
+    // Definice handlerů s typovou bezpečností
+    const errorHandlers: Record<string, (error: FirestoreHelperError) => void> =
+      {
+        ValidationError: (err) => {
+          console.error("Invalid parameters:", err.message);
+          // Show form errors
+        },
+        PermissionError: (err) => {
+          console.error("Permission denied:", err.message);
+          // Redirect to login or show permission UI
+        },
+        NotFoundError: (err) => {
+          console.error("Document not found:", err.message);
+          // Show empty state or create new document
+        },
+      };
+
+    // Get error type and call appropriate handler
+    const errorType = result.error.constructor.name;
+    const handler =
+      errorHandlers[errorType] ||
+      ((err) => {
+        console.error("Unexpected error:", err.message, "Code:", err.code);
+      });
+
+    handler(result.error);
+  } else {
+    // Process result.data
+    console.log("User data:", result.data);
+  }
+} catch (error) {
+  // Catch any unexpected errors outside the FirestoreHelper system
+  console.error("Critical error:", error);
+}
+```
+
+### Error Handling Utilities
+
+The library also includes utilities for error handling:
+
+```typescript
+import { handleError, reportError } from "firestore-helper-ts";
+
+// Convert any error to a structured FirestoreHelperError
+const structuredError = handleError(error);
+
+// Log errors with consistent formatting
+reportError(error);
+```

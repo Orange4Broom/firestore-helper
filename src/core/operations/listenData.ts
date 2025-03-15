@@ -18,6 +18,7 @@ import {
   joinPath,
 } from "../../utils/formatters";
 import { ListenOptions, WhereFilterOp, OrderByDirection } from "../../types";
+import { handleError, reportError, ValidationError } from "../../errors";
 
 /**
  * Sets up a real-time listener for Firestore data changes
@@ -65,6 +66,35 @@ import { ListenOptions, WhereFilterOp, OrderByDirection } from "../../types";
  * });
  */
 export function listenData<T = any>(options: ListenOptions<T>): Unsubscribe {
+  // Validate required parameters
+  if (!options.path) {
+    const error = new ValidationError(
+      "Path parameter is required for listenData"
+    );
+    reportError(error);
+
+    if (options.onError) {
+      options.onError(error);
+    }
+
+    // Return a no-op unsubscribe function if we couldn't set up the listener
+    return () => {};
+  }
+
+  if (!options.onNext) {
+    const error = new ValidationError(
+      "onNext callback is required for listenData"
+    );
+    reportError(error);
+
+    if (options.onError) {
+      options.onError(error);
+    }
+
+    // Return a no-op unsubscribe function if we couldn't set up the listener
+    return () => {};
+  }
+
   const {
     path,
     docId,
@@ -95,7 +125,9 @@ export function listenData<T = any>(options: ListenOptions<T>): Unsubscribe {
           }
         },
         (error) => {
-          console.error("Error listening to document:", error);
+          const structuredError = handleError(error);
+          reportError(structuredError);
+
           if (onError) {
             onError(error);
           }
@@ -136,17 +168,22 @@ export function listenData<T = any>(options: ListenOptions<T>): Unsubscribe {
         onNext(data);
       },
       (error) => {
-        console.error("Error listening to collection:", error);
+        const structuredError = handleError(error);
+        reportError(structuredError);
+
         if (onError) {
           onError(error);
         }
       }
     );
   } catch (error) {
-    console.error("Error setting up listener:", error);
-    if (onError) {
-      onError(error as Error);
+    const structuredError = handleError(error);
+    reportError(structuredError);
+
+    if (onError && error instanceof Error) {
+      onError(error);
     }
+
     // Return a no-op unsubscribe function if we couldn't set up the listener
     return () => {};
   }

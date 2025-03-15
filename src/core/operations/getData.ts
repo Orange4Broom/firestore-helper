@@ -22,6 +22,12 @@ import {
   WhereFilterOp,
   OrderByDirection,
 } from "../../types";
+import {
+  handleError,
+  reportError,
+  ValidationError,
+  NotFoundError,
+} from "../../errors";
 
 /**
  * Retrieves data from Firestore based on specified parameters
@@ -52,6 +58,13 @@ import {
 export async function getData<T = any>(
   options: GetOptions
 ): Promise<Result<T>> {
+  // Validate required parameters
+  if (!options.path) {
+    const error = new ValidationError("Path parameter is required for getData");
+    reportError(error);
+    return { data: null, error, loading: false };
+  }
+
   const {
     path,
     docId,
@@ -67,6 +80,14 @@ export async function getData<T = any>(
     if (docId) {
       const docRef = doc(firestore, joinPath(path, docId));
       const snapshot = await getDoc(docRef);
+
+      if (!snapshot.exists()) {
+        const error = new NotFoundError(
+          `Document not found at path: ${path}/${docId}`
+        );
+        reportError(error);
+        return { data: null, error, loading: false };
+      }
 
       const data = formatDocument<T>(snapshot);
       return { data, error: null, loading: false };
@@ -103,7 +124,9 @@ export async function getData<T = any>(
 
     return { data, error: null, loading: false };
   } catch (error) {
-    console.error("Error retrieving data:", error);
-    return { data: null, error: error as Error, loading: false };
+    // Convert to our structured error format
+    const structuredError = handleError(error);
+    reportError(structuredError);
+    return { data: null, error: structuredError, loading: false };
   }
 }

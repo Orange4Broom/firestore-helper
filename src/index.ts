@@ -32,6 +32,20 @@ export const listen = listenData;
 
 export { formatDocument, formatCollection } from "./utils/formatters";
 
+// Export custom error types and utilities
+export {
+  FirestoreHelperError,
+  InitializationError,
+  ValidationError,
+  QueryError,
+  NotFoundError,
+  PermissionError,
+  NetworkError,
+  TimeoutError,
+  handleError,
+  reportError,
+} from "./errors";
+
 // Exportujeme typy
 export * from "./types";
 
@@ -39,6 +53,7 @@ export * from "./types";
 import { initializeFirebase, resetFirebase } from "./core/firebase";
 import { getData, updateData, createData, deleteData } from "./core/operations";
 import { formatDocument, formatCollection } from "./utils/formatters";
+import { handleError, reportError } from "./errors";
 
 // Objekt pro kompatibilitu
 const FirestoreHelper = {
@@ -53,6 +68,9 @@ const FirestoreHelper = {
   listen: listenData,
   formatDocument,
   formatCollection,
+  // Error handling utilities
+  handleError,
+  reportError,
 };
 
 // Hlavní export

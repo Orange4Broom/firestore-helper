@@ -11,6 +11,7 @@ import {
   orderBy,
   limit,
 } from "firebase/firestore";
+import { NotFoundError } from "../errors";
 
 // Mock funkcí a modulu
 jest.mock("../core/firebase", () => ({
@@ -81,11 +82,12 @@ describe("getData Function", () => {
       });
 
       // Ověření
-      expect(result).toEqual({
-        data: null,
-        error: null,
-        loading: false,
-      });
+      expect(result.data).toBeNull();
+      expect(result.error).toBeInstanceOf(NotFoundError);
+      expect(result.error?.message).toContain(
+        "Document not found at path: test-collection/test-doc"
+      );
+      expect(result.loading).toBe(false);
     });
   });
 
