@@ -13,6 +13,7 @@ Unlike direct use of the Firebase SDK, Firestore Helper significantly simplifies
 
 > A simple and type-safe library for working with Firebase Firestore in TypeScript/JavaScript applications.
 
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/orange4broom)
 [![npm version](https://img.shields.io/npm/v/firestore-helper-ts.svg)](https://www.npmjs.com/package/firestore-helper-ts)
 [![CI](https://github.com/Orange4Broom/firestore-helper/actions/workflows/ci.yml/badge.svg)](https://github.com/Orange4Broom/firestore-helper/actions/workflows/ci.yml)
 
