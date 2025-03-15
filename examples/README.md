@@ -13,6 +13,7 @@ This directory contains various implementation examples and use cases of the `fi
 - `user-name-update-example.ts` - Practical example of updating a user's name with real-time list updates
 - `simple-realtime-updates.ts` - **RECOMMENDED APPROACH** - Simplified approach to real-time updates with the `silent` parameter
 - `error-handling-example.ts` - Advanced error handling with custom error types
+- `logging-example.ts` - Demonstrates how to use the debugging and logging system
 
 ### Advanced Examples by Framework
 
@@ -137,6 +138,27 @@ This example demonstrates:
 - Using the handleError utility to convert generic errors to structured errors
 - Error handling in real-time listeners
 - Try-catch patterns with custom error types
+
+### Running the Logging Example
+
+The `logging-example.ts` example demonstrates the comprehensive logging system:
+
+```bash
+# First build the library
+npm run build
+
+# Then run the example
+npx ts-node examples/logging-example.ts
+```
+
+This example demonstrates:
+
+- Configuring different log levels (DEBUG, INFO, WARN, ERROR)
+- Creating custom loggers for different parts of your application
+- Customizing log format with timestamps and operation names
+- Setting up custom log handlers for production environments
+- Integrating logging with Firebase operations
+- Best practices for debugging during development and logging in production
 
 ## Firebase Configuration
 

@@ -46,6 +46,21 @@ export {
   reportError,
 } from "./errors";
 
+// Export logging system
+export {
+  LogLevel,
+  configureLogger,
+  getLoggerConfig,
+  logError,
+  logWarn,
+  logInfo,
+  logDebug,
+  createLogger,
+} from "./logging";
+
+// Export logging types
+export type { LoggerConfig, Logger } from "./logging";
+
 // Exportujeme typy
 export * from "./types";
 

@@ -33,7 +33,7 @@ Unlike direct use of the Firebase SDK, Firestore Helper significantly simplifies
 - [🚀 Advanced Usage](#-advanced-usage)
 - [🧪 Testing](#-testing)
 - [📄 License](#-license)
-- [Error Handling](#-error-handling)
+- [🛑 Error Handling](#-error-handling)
 
 ## 🚀 Installation
 
@@ -697,11 +697,107 @@ This repository uses GitHub Actions to automate the development, testing, and re
 - Testing on multiple Node.js versions (16.x, 18.x, 20.x)
 - Automatic builds to verify compatibility
 
-## 📄 License
+## 🐞 Debugging & Logging
 
-ISC
+Firestore Helper TS includes a comprehensive logging system that helps you debug your application and understand what's happening under the hood.
 
-## Error Handling
+### Logging Levels
+
+The logging system supports various levels of detail:
+
+```typescript
+import { LogLevel, configureLogger } from "firestore-helper-ts";
+
+// Available log levels
+LogLevel.NONE; // 0: No logging
+LogLevel.ERROR; // 1: Only errors (default)
+LogLevel.WARN; // 2: Errors and warnings
+LogLevel.INFO; // 3: Errors, warnings, and informational messages
+LogLevel.DEBUG; // 4: All messages including detailed debug info
+```
+
+### Basic Usage
+
+To change the logging level:
+
+```typescript
+import { configureLogger, LogLevel } from "firestore-helper-ts";
+
+// Enable all logs including debug
+configureLogger({ level: LogLevel.DEBUG });
+
+// Only show errors and warnings
+configureLogger({ level: LogLevel.WARN });
+
+// Disable all logging
+configureLogger({ level: LogLevel.NONE });
+```
+
+### Creating Custom Loggers
+
+You can create dedicated loggers for different parts of your application:
+
+```typescript
+import { createLogger } from "firestore-helper-ts";
+
+// Create loggers for different components
+const authLogger = createLogger("auth");
+const dbLogger = createLogger("database");
+const uiLogger = createLogger("ui");
+
+// Use them in your code
+authLogger.info("User logged in successfully");
+dbLogger.debug("Fetching data with params", { collection: "users", id: "123" });
+uiLogger.warn("Component will be deprecated in next version");
+```
+
+### Customizing Log Format
+
+You can customize how logs are formatted:
+
+```typescript
+// Configure timestamp and operation name display
+configureLogger({
+  timestamps: true, // Include timestamps in logs
+  showOperation: true, // Include operation name in logs
+});
+```
+
+### Custom Log Handling
+
+For production environments, you might want to send logs to a monitoring service:
+
+```typescript
+// Set up a custom handler for all logs
+configureLogger({
+  level: LogLevel.ERROR, // Only process errors
+  customHandler: (level, message, ...data) => {
+    // Send to your logging service
+    myLoggingService.capture({
+      level: LogLevel[level],
+      message,
+      data,
+      timestamp: new Date().toISOString(),
+    });
+  },
+});
+```
+
+### Logging in Practice
+
+In development, enable detailed logging to see what's happening:
+
+```typescript
+// During development
+configureLogger({ level: LogLevel.DEBUG });
+
+// Later in production
+configureLogger({ level: LogLevel.ERROR });
+```
+
+For a complete example of using the logging system, check [examples/logging-example.ts](./examples/logging-example.ts).
+
+## 🛑 Error Handling
 
 Firestore Helper TS includes a comprehensive error handling system that provides:
 
@@ -791,3 +887,7 @@ const structuredError = handleError(error);
 // Log errors with consistent formatting
 reportError(error);
 ```
+
+## 📄 License
+
+ISC

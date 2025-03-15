@@ -80,8 +80,13 @@ export class TimeoutError extends FirestoreHelperError {
 }
 
 // Error reporting utility
+import { logError } from "./logging";
+
 export function reportError(error: Error): void {
-  // This can be extended to log to a service or remote error tracking system
+  // Use the new logging system
+  logError(error.message, "error-handler", error);
+
+  // Also log to console directly for backward compatibility
   console.error("[FirestoreHelper]", error);
 }
 
