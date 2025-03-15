@@ -1,6 +1,6 @@
 {
   "name": "firestore-helper-ts",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "A simple library for working with Firebase Firestore in TypeScript/JavaScript applications",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -64,9 +64,9 @@
     "typescript": "^5.8.2"
   },
   "dependencies": {
-    "firebase": "^10.0.0 || ^11.0.0"
+    "firebase": "^11.4.0"
   },
   "peerDependencies": {
-    "firebase": "^10.0.0 || ^11.0.0"
+    "firebase": "^11.4.0"
   }
 }
