@@ -1,87 +1,57 @@
-import { collection, doc, setDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { getFirebaseInstance } from "../firebase";
-import { UpdateOptions, Result } from "../../types";
-import { getData } from "./getData";
-import { listenData } from "./listenData";
+import { formatDocument, joinPath } from "../../utils/formatters";
+import { CreateOptions, Result } from "../../types";
 import { handleError, reportError, ValidationError } from "../../errors";
-import { joinPath } from "../../utils/formatters";
+import { createLogger } from "../../logging";
+import { CacheManager } from "../../cache/cacheManager";
+
+// Create a logger for this operation
+const logger = createLogger("createData");
+
+// Get cache manager instance lazily
+let cacheInstance: CacheManager | null = null;
+const getCache = () => {
+  if (!cacheInstance) {
+    cacheInstance = CacheManager.getInstance();
+  }
+  return cacheInstance;
+};
 
 /**
- * Creates a new document in Firestore with either an automatically generated ID or a custom ID
+ * Creates a new document in Firestore
  *
- * @template T - Type of the document data
- * @param {Omit<UpdateOptions, "docId"> & { customId?: string }} options - Options for creating the document
- * @param {string} options.path - Path to the collection where the document will be created
- * @param {Record<string, any>} options.data - Data to store in the document
- * @param {string} [options.customId] - Optional custom ID for the document (if not provided, Firestore will generate one)
- * @param {boolean} [options.silent=false] - If true, the function will not return any data, only the document ID and potential errors (good for use with real-time listeners)
- * @param {boolean} [options.useListener=false] - Whether to return a listener for the document instead of a one-time fetch
- *
- * @returns {Promise<Result<T & { id: string }> | (() => void) | Result<{id: string}>>} Result object containing the created document with its ID, an unsubscribe function if useListener is true, or just Result with ID and error if silent is true
+ * @template T - Type of the data to create
+ * @param {CreateOptions<T>} options - Options for creating data
+ * @returns {Promise<Result<T>>} Result object containing created data, error, and loading status
  *
  * @example
- * // Create a new user with automatically generated ID
+ * // Create a document with auto-generated ID
  * const result = await createData({
  *   path: 'users',
- *   data: {
- *     name: 'John Doe',
- *     email: 'john@example.com'
- *   }
+ *   data: { name: 'John Doe', age: 30 }
  * });
  *
  * @example
- * // Create a new user with custom ID (e.g., UUID)
+ * // Create a document with specific ID
  * const result = await createData({
  *   path: 'users',
- *   customId: '123e4567-e89b-12d3-a456-426614174000',
- *   data: {
- *     name: 'John Doe',
- *     email: 'john@example.com'
- *   }
- * });
- *
- * @example
- * // Create in silent mode - good when using with real-time listeners
- * const result = await createData({
- *   path: 'users',
- *   data: {
- *     name: 'John Doe',
- *     email: 'john@example.com'
- *   },
- *   silent: true // Only return the ID, not full document data
- * });
- *
- * @example
- * // Create a new user with real-time updates
- * const unsubscribe = await createData({
- *   path: 'users',
- *   data: {
- *     name: 'John Doe',
- *     email: 'john@example.com'
- *   },
- *   useListener: true,
- *   onNext: (userData) => {
- *     console.log('User data updated:', userData);
- *   }
+ *   docId: 'user123',
+ *   data: { name: 'John Doe', age: 30 }
  * });
  */
-export async function createData<
-  T extends Record<string, any> = Record<string, any>
->(
-  options: Omit<UpdateOptions, "docId"> & {
-    customId?: string;
-    useListener?: boolean;
-    silent?: boolean;
-    onNext?: (data: T & { id: string }) => void;
-    onError?: (error: Error) => void;
-  }
-): Promise<Result<T & { id: string }> | (() => void) | Result<{ id: string }>> {
+export async function createData<T extends object>(
+  options: CreateOptions<T>
+): Promise<Result<T>> {
+  logger.debug("Called with options", options);
+
   // Validate required parameters
   if (!options.path) {
     const error = new ValidationError(
       "Path parameter is required for createData"
     );
     reportError(error);
+    logger.error("Missing required parameter: path");
     return { data: null, error, loading: false };
   }
 
@@ -90,77 +60,49 @@ export async function createData<
       "Data parameter is required for createData"
     );
     reportError(error);
+    logger.error("Missing required parameter: data");
     return { data: null, error, loading: false };
   }
 
-  const {
-    path,
-    data,
-    customId,
-    useListener = false,
-    silent = false,
-    onNext,
-    onError,
-  } = options;
+  const { path, docId, data, silent } = options;
 
   try {
+    logger.info(
+      `Creating document at path: ${path}${docId ? `/${docId}` : ""}`
+    );
     const { firestore } = getFirebaseInstance();
 
-    // Create a reference to the collection
-    const collectionRef = collection(firestore, path);
+    // Create document reference (with or without ID)
+    const docRef = docId
+      ? doc(firestore, joinPath(path, docId))
+      : doc(firestore, path);
 
-    // Create a document reference - either with custom ID or auto-generated
-    const newDocRef = customId
-      ? doc(firestore, joinPath(path, customId))
-      : doc(collectionRef);
+    // Add document to Firestore
+    await setDoc(docRef, data);
 
-    // Set the document data
-    await setDoc(newDocRef, data);
+    // Format response data
+    const createdData = {
+      ...data,
+      id: docRef.id,
+    } as T;
 
-    const documentId = newDocRef.id;
+    // Invalidate collection cache
+    getCache().invalidateCollection(path);
+    logger.debug("Invalidated collection cache");
 
-    // Silent mode - return only the ID without fetching the full document
+    logger.info("Successfully created document");
+
+    // If silent mode is enabled, return minimal response
     if (silent) {
-      return {
-        data: { id: documentId } as any,
-        error: null,
-        loading: false,
-      };
+      return { data: null, error: null, loading: false };
     }
 
-    // If using a listener, set up real-time updates
-    if (useListener) {
-      if (!onNext) {
-        const error = new ValidationError(
-          "onNext callback is required when useListener is true"
-        );
-        reportError(error);
-        return { data: null, error, loading: false };
-      }
-
-      return listenData<T & { id: string }>({
-        path,
-        docId: documentId,
-        onNext,
-        onError,
-      });
-    }
-
-    // Otherwise do a one-time fetch
-    const result = await getData<T & { id: string }>({
-      path,
-      docId: documentId,
-    });
-
-    return result;
+    return { data: createdData, error: null, loading: false };
   } catch (error) {
+    // Convert to our structured error format
+    logger.error("Error creating data", error);
     const structuredError = handleError(error);
     reportError(structuredError);
-
-    if (onError && error instanceof Error) {
-      onError(error);
-    }
-
     return { data: null, error: structuredError, loading: false };
   }
 }

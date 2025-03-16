@@ -10,6 +10,7 @@ import {
   Query,
   DocumentReference,
   Unsubscribe,
+  Firestore,
 } from "firebase/firestore";
 import { getFirebaseInstance } from "../firebase";
 import {
@@ -19,6 +20,10 @@ import {
 } from "../../utils/formatters";
 import { ListenOptions, WhereFilterOp, OrderByDirection } from "../../types";
 import { handleError, reportError, ValidationError } from "../../errors";
+import { CacheManager } from "../../cache/cacheManager";
+import { createLogger } from "../../logging";
+
+const logger = createLogger("listenData");
 
 /**
  * Sets up a real-time listener for Firestore data changes
@@ -65,126 +70,119 @@ import { handleError, reportError, ValidationError } from "../../errors";
  *   }
  * });
  */
-export function listenData<T = any>(options: ListenOptions<T>): Unsubscribe {
-  // Validate required parameters
-  if (!options.path) {
-    const error = new ValidationError(
-      "Path parameter is required for listenData"
-    );
-    reportError(error);
-
-    if (options.onError) {
-      options.onError(error);
-    }
-
-    // Return a no-op unsubscribe function if we couldn't set up the listener
-    return () => {};
-  }
-
-  if (!options.onNext) {
-    const error = new ValidationError(
-      "onNext callback is required for listenData"
-    );
-    reportError(error);
-
-    if (options.onError) {
-      options.onError(error);
-    }
-
-    // Return a no-op unsubscribe function if we couldn't set up the listener
-    return () => {};
-  }
-
+export const listenData = <T extends { id: string }>(
+  options: ListenOptions<T>
+): Unsubscribe => {
   const {
     path,
     docId,
+    onNext,
+    onError,
     where: whereOptions,
     orderBy: orderByOptions,
     limit: limitCount,
-    onNext,
-    onError,
   } = options;
 
   try {
+    logger.debug("Starting listener with options:", options);
     const { firestore } = getFirebaseInstance();
+    const cache = CacheManager.getInstance();
 
-    // If document ID is provided, listen to a single document
     if (docId) {
-      const docRef: DocumentReference = doc(firestore, joinPath(path, docId));
+      // Listen to a single document
+      const docRef = doc(firestore, path, docId);
 
+      logger.debug("Setting up document snapshot listener");
       return onSnapshot(
         docRef,
         (snapshot) => {
-          const data = formatDocument<T>(snapshot);
-          // Only call onNext with the data if it exists
-          if (data !== null) {
+          try {
+            const data = snapshot.exists()
+              ? ({ id: snapshot.id, ...snapshot.data() } as T)
+              : null;
+
+            // Invalidate cache for this path
+            logger.debug("Invalidating cache for path:", path);
+            cache.invalidateByPath(path);
+
+            // Call callback with updated data
+            logger.debug("Calling onNext with updated data");
             onNext(data);
-          } else {
-            // If document doesn't exist, pass an empty object cast to T
-            onNext({} as T);
+          } catch (error) {
+            logger.error("Error processing document snapshot:", error);
+            if (onError) {
+              onError(handleError(error));
+            }
           }
         },
         (error) => {
-          const structuredError = handleError(error);
-          reportError(structuredError);
-
+          logger.error("Document listener error:", error);
           if (onError) {
-            onError(error);
+            onError(handleError(error));
+          }
+        }
+      );
+    } else {
+      // Listen to a collection
+      let queryRef: Query = collection(firestore, path);
+
+      // Apply where conditions
+      if (whereOptions && whereOptions.length > 0) {
+        whereOptions.forEach(([field, op, value]) => {
+          queryRef = query(queryRef, where(field, op, value));
+        });
+      }
+
+      // Apply sorting
+      if (orderByOptions && orderByOptions.length > 0) {
+        orderByOptions.forEach(([field, direction]) => {
+          queryRef = query(queryRef, orderBy(field, direction));
+        });
+      }
+
+      // Apply limit
+      if (limitCount) {
+        queryRef = query(queryRef, limit(limitCount));
+      }
+
+      logger.debug("Setting up collection snapshot listener");
+      return onSnapshot(
+        queryRef,
+        (snapshot) => {
+          try {
+            const data = snapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            })) as T[];
+
+            // Invalidate cache for this path
+            logger.debug("Invalidating cache for path:", path);
+            cache.invalidateByPath(path);
+
+            // Call callback with updated data
+            logger.debug("Calling onNext with updated data");
+            onNext(data);
+          } catch (error) {
+            logger.error("Error processing collection snapshot:", error);
+            if (onError) {
+              onError(handleError(error));
+            }
+          }
+        },
+        (error) => {
+          logger.error("Collection listener error:", error);
+          if (onError) {
+            onError(handleError(error));
           }
         }
       );
     }
-
-    // Otherwise listen to a collection and apply filters
-    let collectionRef: CollectionReference = collection(firestore, path);
-    let queryRef: Query = collectionRef;
-
-    // Apply where conditions
-    if (whereOptions && whereOptions.length > 0) {
-      whereOptions.forEach(([field, op, value]) => {
-        queryRef = query(queryRef, where(field, op as WhereFilterOp, value));
-      });
-    }
-
-    // Apply sorting
-    if (orderByOptions && orderByOptions.length > 0) {
-      orderByOptions.forEach(([field, direction]) => {
-        queryRef = query(
-          queryRef,
-          orderBy(field, direction as OrderByDirection)
-        );
-      });
-    }
-
-    // Apply limit
-    if (limitCount) {
-      queryRef = query(queryRef, limit(limitCount));
-    }
-
-    return onSnapshot(
-      queryRef,
-      (snapshot) => {
-        const data = formatCollection<T>(snapshot) as unknown as T;
-        onNext(data);
-      },
-      (error) => {
-        const structuredError = handleError(error);
-        reportError(structuredError);
-
-        if (onError) {
-          onError(error);
-        }
-      }
-    );
   } catch (error) {
-    const structuredError = handleError(error);
-    reportError(structuredError);
-
-    if (onError && error instanceof Error) {
-      onError(error);
+    logger.error("Error setting up listener:", error);
+    if (onError) {
+      onError(handleError(error));
     }
-
     // Return a no-op unsubscribe function if we couldn't set up the listener
     return () => {};
   }
-}
+};

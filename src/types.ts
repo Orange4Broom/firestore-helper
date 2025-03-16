@@ -1,6 +1,9 @@
 import { FirebaseOptions, FirebaseApp } from "firebase/app";
-import { Firestore } from "firebase/firestore";
+import { Firestore, WhereFilterOp, OrderByDirection } from "firebase/firestore";
 import { FirestoreHelperError } from "./errors";
+
+// Re-export types from firebase/firestore
+export type { WhereFilterOp, OrderByDirection };
 
 /**
  * Firebase configuration options
@@ -39,46 +42,37 @@ export interface GetOptions {
 }
 
 /**
- * Options for listening to real-time updates from Firestore
- * Used by listenData/listen function
- *
- * @template T - Type of the data being listened to
+ * Options for creating data in Firestore
+ * Used by createData/create function
  */
-export interface ListenOptions<T = any> {
-  /** Path to the collection or document in Firestore */
+export interface CreateOptions<T> {
+  /** Path to the collection in Firestore */
   path: string;
-  /** Optional document ID when listening to a single document */
+  /** Optional document ID (will be auto-generated if not provided) */
   docId?: string;
-  /** Optional array of filter conditions in format [field, operator, value] */
-  where?: Array<[string, WhereFilterOp, any]>;
-  /** Optional array of sort conditions in format [field, direction] */
-  orderBy?: Array<[string, OrderByDirection?]>;
-  /** Optional maximum number of documents to return */
-  limit?: number;
-  /** Callback function to receive data updates */
-  onNext: (data: T) => void;
-  /** Optional callback function to handle errors */
-  onError?: (error: Error) => void;
+  /** Data to create in the document */
+  data: T;
+  /**
+   * Silent mode - if true, the function will not return data, only potential errors
+   * This is ideal for use with real-time listeners where you don't need to refetch data
+   * after creation because the existing listener will automatically receive updates.
+   */
+  silent?: boolean;
 }
 
 /**
- * Options for updating or creating data in Firestore
+ * Options for updating data in Firestore
  * Used by updateData/update function
  */
-export interface UpdateOptions {
-  /** Path to the collection or document in Firestore */
+export interface UpdateOptions<T> {
+  /** Path to the collection in Firestore */
   path: string;
-  /** Document ID when updating a document in a collection */
-  docId?: string;
-  /** Data to update or create in the document */
-  data: Record<string, any>;
+  /** Document ID of the document to update */
+  docId: string;
+  /** Data to update in the document */
+  data: Partial<T>;
   /** Whether to merge with existing data (true) or overwrite the document (false) */
   merge?: boolean;
-  /**
-   * @deprecated Use useListener with onNext callback instead
-   * Whether to automatically retrieve updated data after successful update
-   */
-  refetch?: boolean;
   /**
    * Silent mode - if true, the function will not return data, only potential errors
    * This is ideal for use with real-time listeners where you don't need to refetch data
@@ -89,18 +83,13 @@ export interface UpdateOptions {
 
 /**
  * Options for deleting data from Firestore
- * Used by deleteData/removeDoc function
+ * Used by deleteData/remove function
  */
 export interface DeleteOptions {
-  /** Path to the collection or document in Firestore */
+  /** Path to the collection in Firestore */
   path: string;
-  /** Document ID when deleting a document in a collection */
-  docId?: string;
-  /**
-   * @deprecated Use useListener with onNext callback instead
-   * Whether to automatically retrieve parent collection data after successful deletion
-   */
-  refetch?: boolean;
+  /** Document ID of the document to delete */
+  docId: string;
   /**
    * Silent mode - if true, the function will not return data, only potential errors
    * This is ideal for use with real-time listeners where you don't need to refetch data
@@ -110,32 +99,19 @@ export interface DeleteOptions {
 }
 
 /**
- * Filter operators for Firestore queries
- * Matches the operators supported by Firestore
+ * Options for listening to data changes in Firestore
+ * Used by listenData/listen function
  */
-export type WhereFilterOp =
-  | "<"
-  | "<="
-  | "=="
-  | "!="
-  | ">="
-  | ">"
-  | "array-contains"
-  | "array-contains-any"
-  | "in"
-  | "not-in";
-
-/**
- * Sort direction for Firestore queries
- * "asc" for ascending, "desc" for descending
- */
-export type OrderByDirection = "asc" | "desc";
+export interface ListenOptions<T = any> extends GetOptions {
+  /** Callback function called when data changes */
+  onNext: (data: T | T[] | null) => void;
+  /** Callback function called when an error occurs */
+  onError?: (error: Error) => void;
+}
 
 /**
  * Standard result object returned by all operations
  * Contains the data, any error, and loading status
- *
- * @template T - Type of the data returned
  */
 export interface Result<T = any> {
   /** The retrieved, created, or updated data (null if operation failed) */

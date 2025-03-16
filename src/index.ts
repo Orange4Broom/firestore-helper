@@ -2,37 +2,28 @@
  * Firestore Helper - Nástroje pro snadnou práci s Firebase Firestore
  */
 
-// Re-exporty s jednoduššími názvy
+// Core Firebase functionality
 export {
   initializeFirebase as initialize,
   getFirebaseInstance,
   resetFirebase as reset,
 } from "./core/firebase";
 
-// Import listenData directly from its file
-import { listenData } from "./core/operations/listenData";
-
-// Přímý export funkcí pro práci s Firestore
-export { getData, updateData, createData, deleteData } from "./core/operations";
-
-// Export listenData directly
-export { listenData };
-
-// Alias exporty pro kompatibilitu a přehlednost
+// Core operations with aliases
 export {
   getData as get,
   updateData as update,
   createData as create,
-  // Pro lepší kompatibilitu s TypeScript a ESM používáme removeDoc místo delete (které je rezervované klíčové slovo)
   deleteData as removeDoc,
 } from "./core/operations";
 
-// Export listen as an alias for listenData
-export const listen = listenData;
+// Export listenData separately since it's in its own file
+export { listenData as listen } from "./core/operations/listenData";
 
+// Utility functions
 export { formatDocument, formatCollection } from "./utils/formatters";
 
-// Export custom error types and utilities
+// Error handling
 export {
   FirestoreHelperError,
   InitializationError,
@@ -46,7 +37,7 @@ export {
   reportError,
 } from "./errors";
 
-// Export logging system
+// Logging system
 export {
   LogLevel,
   configureLogger,
@@ -58,35 +49,45 @@ export {
   createLogger,
 } from "./logging";
 
-// Export logging types
+// Type exports
 export type { LoggerConfig, Logger } from "./logging";
 
-// Exportujeme typy
-export * from "./types";
+export type { CacheConfig } from "./cache/cacheManager";
 
-// Importy pro objekt FirestoreHelper
+export type {
+  GetOptions,
+  UpdateOptions,
+  DeleteOptions,
+  ListenOptions,
+  Result,
+  WhereFilterOp,
+  OrderByDirection,
+} from "./types";
+
+// Cache management
+export { CacheManager } from "./cache/cacheManager";
+
+// Main FirestoreHelper object
 import { initializeFirebase, resetFirebase } from "./core/firebase";
 import { getData, updateData, createData, deleteData } from "./core/operations";
+import { listenData } from "./core/operations/listenData";
 import { formatDocument, formatCollection } from "./utils/formatters";
 import { handleError, reportError } from "./errors";
+import { CacheManager } from "./cache/cacheManager";
 
-// Objekt pro kompatibilitu
 const FirestoreHelper = {
   initialize: initializeFirebase,
   reset: resetFirebase,
   get: getData,
   update: updateData,
   create: createData,
-  delete: deleteData,
-  // Stejná funkce pod alternativním názvem pro snazší použití
   removeDoc: deleteData,
   listen: listenData,
   formatDocument,
   formatCollection,
-  // Error handling utilities
   handleError,
   reportError,
+  cache: CacheManager.getInstance(),
 };
 
-// Hlavní export
 export default FirestoreHelper;

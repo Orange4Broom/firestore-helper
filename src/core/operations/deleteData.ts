@@ -5,6 +5,20 @@ import { getData } from "./getData";
 import { listenData } from "./listenData";
 import { joinPath } from "../../utils/formatters";
 import { handleError, reportError, ValidationError } from "../../errors";
+import { createLogger } from "../../logging";
+import { CacheManager } from "../../cache/cacheManager";
+
+// Create a logger for this operation
+const logger = createLogger("deleteData");
+
+// Get cache manager instance lazily
+let cacheInstance: CacheManager | null = null;
+const getCache = () => {
+  if (!cacheInstance) {
+    cacheInstance = CacheManager.getInstance();
+  }
+  return cacheInstance;
+};
 
 /**
  * Deletes a document from Firestore
@@ -57,7 +71,7 @@ import { handleError, reportError, ValidationError } from "../../errors";
  * // Later, when you no longer need updates:
  * unsubscribe();
  */
-export async function deleteData<T = any>(
+export async function deleteData<T extends { id: string }>(
   options: DeleteOptions & {
     useListener?: boolean;
     onNext?: (data: T) => void;
@@ -65,12 +79,24 @@ export async function deleteData<T = any>(
     silent?: boolean;
   }
 ): Promise<Result<T> | (() => void) | Result<null>> {
+  logger.debug("Called with options", options);
+
   // Validate required parameters
   if (!options.path) {
     const error = new ValidationError(
       "Path parameter is required for deleteData"
     );
     reportError(error);
+    logger.error("Missing required parameter: path");
+    return { data: null, error, loading: false };
+  }
+
+  if (!options.docId) {
+    const error = new ValidationError(
+      "DocId parameter is required for deleteData"
+    );
+    reportError(error);
+    logger.error("Missing required parameter: docId");
     return { data: null, error, loading: false };
   }
 
@@ -84,47 +110,27 @@ export async function deleteData<T = any>(
   } = options;
 
   try {
-    if (!docId) {
-      const error = new ValidationError("Document ID is required for deletion");
-      reportError(error);
-      return { data: null, error, loading: false };
-    }
-
+    logger.info(`Deleting document at path: ${path}/${docId}`);
     const { firestore } = getFirebaseInstance();
 
-    // Create a reference to the document and delete it
+    // Get document reference
     const docRef = doc(firestore, joinPath(path, docId));
+
+    // Delete the document
     await deleteDoc(docRef);
 
-    // Silent mode - don't return data, just success/error status
-    if (silent) {
-      return { data: null, error: null, loading: false };
-    }
+    // Invalidate both document and collection cache
+    getCache().remove(CacheManager.createKey(path, { docId }));
+    getCache().invalidateCollection(path);
+    logger.debug("Invalidated document and collection cache");
 
-    // If using a listener, set up real-time updates for the parent collection
-    if (useListener) {
-      if (!onNext) {
-        const error = new ValidationError(
-          "onNext callback is required when useListener is true"
-        );
-        reportError(error);
-        return { data: null, error, loading: false };
-      }
+    logger.info("Successfully deleted document");
 
-      return listenData<T>({
-        path,
-        onNext,
-        onError,
-      });
-    }
-
-    // Otherwise do a one-time fetch of the parent collection (previous behavior)
-    const result = await getData<T>({
-      path,
-    });
-
-    return result;
+    // Always return null data as the document no longer exists
+    return { data: null, error: null, loading: false };
   } catch (error) {
+    // Convert to our structured error format
+    logger.error("Error deleting data", error);
     const structuredError = handleError(error);
     reportError(structuredError);
 

@@ -1,10 +1,30 @@
-import { doc, setDoc, collection, updateDoc } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  collection,
+  updateDoc,
+  DocumentData,
+} from "firebase/firestore";
 import { getFirebaseInstance } from "../firebase";
 import { UpdateOptions, Result } from "../../types";
 import { getData } from "./getData";
 import { listenData } from "./listenData";
 import { joinPath } from "../../utils/formatters";
 import { handleError, reportError, ValidationError } from "../../errors";
+import { createLogger } from "../../logging";
+import { CacheManager } from "../../cache/cacheManager";
+
+// Create a logger for this operation
+const logger = createLogger("updateData");
+
+// Get cache manager instance lazily
+let cacheInstance: CacheManager | null = null;
+const getCache = () => {
+  if (!cacheInstance) {
+    cacheInstance = CacheManager.getInstance();
+  }
+  return cacheInstance;
+};
 
 /**
  * Updates an existing document or collection in Firestore
@@ -69,20 +89,27 @@ import { handleError, reportError, ValidationError } from "../../errors";
  * // Later, when you no longer need updates:
  * unsubscribe();
  */
-export async function updateData<T = any>(
-  options: UpdateOptions & {
-    useListener?: boolean;
-    onNext?: (data: T) => void;
-    onError?: (error: Error) => void;
-    silent?: boolean;
-  }
-): Promise<Result<T> | (() => void) | Result<null>> {
+export async function updateData<T extends { id: string }>(
+  options: UpdateOptions<T>
+): Promise<Result<T>> {
+  logger.debug("Called with options", options);
+
   // Validate required parameters
   if (!options.path) {
     const error = new ValidationError(
       "Path parameter is required for updateData"
     );
     reportError(error);
+    logger.error("Missing required parameter: path");
+    return { data: null, error, loading: false };
+  }
+
+  if (!options.docId) {
+    const error = new ValidationError(
+      "DocId parameter is required for updateData"
+    );
+    reportError(error);
+    logger.error("Missing required parameter: docId");
     return { data: null, error, loading: false };
   }
 
@@ -91,115 +118,50 @@ export async function updateData<T = any>(
       "Data parameter is required for updateData"
     );
     reportError(error);
+    logger.error("Missing required parameter: data");
     return { data: null, error, loading: false };
   }
 
-  const {
-    path,
-    docId,
-    data,
-    merge = true,
-    useListener = false,
-    silent = false,
-    onNext,
-    onError,
-  } = options;
+  const { path, docId, data, merge = true, silent } = options;
 
   try {
+    logger.info(`Updating document at path: ${path}/${docId}`);
     const { firestore } = getFirebaseInstance();
 
-    // If docId is provided, we're updating a specific document in a collection
-    if (docId) {
-      const docRef = doc(firestore, joinPath(path, docId));
+    // Get document reference
+    const docRef = doc(firestore, joinPath(path, docId));
 
-      if (merge) {
-        await updateDoc(docRef, data);
-      } else {
-        await setDoc(docRef, data);
-      }
-
-      // Silent mode - don't return data, just success/error status
-      if (silent) {
-        return { data: null, error: null, loading: false };
-      }
-
-      // If using a listener, set up real-time updates
-      if (useListener) {
-        if (!onNext) {
-          const error = new ValidationError(
-            "onNext callback is required when useListener is true"
-          );
-          reportError(error);
-          return { data: null, error, loading: false };
-        }
-
-        return listenData<T>({
-          path,
-          docId,
-          onNext,
-          onError,
-        });
-      }
-
-      // Otherwise do a one-time fetch (previous behavior)
-      const result = await getData<T>({
-        path,
-        docId,
-      });
-
-      return result;
+    // Update or set the document
+    if (merge) {
+      await updateDoc(docRef, data as DocumentData);
     } else {
-      // If no docId, we're updating a document at the direct path
-      const docRef = doc(firestore, path);
-
-      if (merge) {
-        await updateDoc(docRef, data);
-      } else {
-        await setDoc(docRef, data);
-      }
-
-      // Silent mode - don't return data, just success/error status
-      if (silent) {
-        return { data: null, error: null, loading: false };
-      }
-
-      // If using a listener, set up real-time updates
-      if (useListener) {
-        if (!onNext) {
-          const error = new ValidationError(
-            "onNext callback is required when useListener is true"
-          );
-          reportError(error);
-          return { data: null, error, loading: false };
-        }
-
-        const pathParts = path.split("/");
-        const documentPath = pathParts.slice(0, -1).join("/");
-        const documentId = pathParts[pathParts.length - 1];
-
-        return listenData<T>({
-          path: documentPath,
-          docId: documentId,
-          onNext,
-          onError,
-        });
-      }
-
-      // Otherwise do a one-time fetch (previous behavior)
-      const result = await getData<T>({
-        path,
-      });
-
-      return result;
+      await setDoc(docRef, data as DocumentData);
     }
+
+    // Format response data
+    const updatedData = {
+      ...data,
+      id: docId,
+    } as T;
+
+    // Invalidate both document and collection cache
+    getCache().remove(CacheManager.createKey(path, { docId }));
+    getCache().invalidateCollection(path);
+    logger.debug("Invalidated document and collection cache");
+
+    logger.info("Successfully updated document");
+
+    // If silent mode is enabled, return minimal response
+    if (silent) {
+      return { data: null, error: null, loading: false };
+    }
+
+    return { data: updatedData, error: null, loading: false };
   } catch (error) {
+    // Convert to our structured error format
+    logger.error("Error updating data", error);
     const structuredError = handleError(error);
     reportError(structuredError);
-
-    if (onError && error instanceof Error) {
-      onError(error);
-    }
-
     return { data: null, error: structuredError, loading: false };
   }
 }
