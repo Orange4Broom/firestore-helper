@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { FirebaseConfig, FirebaseState } from "../types";
 
-// Globální stav Firebase
+// Global Firebase state
 let state: FirebaseState = {
   app: null,
   firestore: null,
@@ -10,26 +10,24 @@ let state: FirebaseState = {
 };
 
 /**
- * Inicializuje Firebase s konfigurací
- * @param config - Konfigurace Firebase
- * @returns Firebase a Firestore instance
+ * Initializes Firebase with configuration
+ * @param config - Firebase configuration
+ * @returns Firebase and Firestore instance
  */
 export function initializeFirebase(config: FirebaseConfig) {
   if (state.initialized) {
-    console.warn(
-      "Firebase již byl inicializován. Pro reinicializaci volejte resetFirebase()."
-    );
+    console.warn("Firebase has already been initialized.");
     return { app: state.app, firestore: state.firestore };
   }
 
   try {
-    // Inicializace Firebase aplikace
+    // Initializing Firebase application
     const app = initializeApp(config);
 
-    // Získání Firestore instance
+    // Getting Firestore instance
     const firestore = getFirestore(app);
 
-    // Aktualizace stavu
+    // Update state
     state = {
       app,
       firestore,
@@ -38,18 +36,18 @@ export function initializeFirebase(config: FirebaseConfig) {
 
     return { app, firestore };
   } catch (error) {
-    console.error("Chyba při inicializaci Firebase:", error);
+    console.error("Error initializing Firebase:", error);
     throw error;
   }
 }
 
 /**
- * Vrátí aktuální Firebase a Firestore instance nebo vyhodí chybu, pokud nejsou inicializovány
+ * Returns the current Firebase and Firestore instance or throws an error if not initialized
  */
 export function getFirebaseInstance() {
   if (!state.initialized || !state.app || !state.firestore) {
     throw new Error(
-      "Firebase není inicializován. Nejprve zavolejte initializeFirebase()."
+      "Firebase is not initialized. Please call initializeFirebase() first."
     );
   }
 
@@ -57,7 +55,7 @@ export function getFirebaseInstance() {
 }
 
 /**
- * Resetuje Firebase inicializaci
+ * Resets the Firebase initialization
  */
 export function resetFirebase() {
   state = {

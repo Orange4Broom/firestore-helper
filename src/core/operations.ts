@@ -1,16 +1,16 @@
 /**
- * DŮLEŽITÉ: Tento soubor je zachován pouze pro zpětnou kompatibilitu.
+ * IMPORTANT: This file is only kept for backward compatibility.
  *
- * Všechny funkce byly přesunuty do samostatných souborů ve složce operations:
+ * All functions have been moved to separate files in the operations folder:
  * - getData => src/core/operations/getData.ts
  * - updateData => src/core/operations/updateData.ts
  * - createData => src/core/operations/createData.ts
  * - deleteData => src/core/operations/deleteData.ts
  *
- * Pro přístup k těmto funkcím prosím importujte z 'src/core' nebo přímo z 'src/core/operations'.
+ * Please import these functions from 'src/core' or directly from 'src/core/operations'.
  */
 
-// Přímo exportujeme funkce pro zpětnou kompatibilitu
+// Directly export functions for backward compatibility
 export { getData } from "./operations/getData";
 export { updateData } from "./operations/updateData";
 export { createData } from "./operations/createData";

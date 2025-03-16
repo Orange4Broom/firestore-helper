@@ -40,7 +40,7 @@ describe("Firebase Core Functions", () => {
 
   test("getFirebaseInstance should throw error if not initialized", () => {
     expect(() => getFirebaseInstance()).toThrowError(
-      "Firebase není inicializován"
+      "Firebase is not initialized. Please call initializeFirebase() first."
     );
   });
 
@@ -57,7 +57,7 @@ describe("Firebase Core Functions", () => {
     expect(() => getFirebaseInstance()).not.toThrow();
     resetFirebase();
     expect(() => getFirebaseInstance()).toThrowError(
-      "Firebase není inicializován"
+      "Firebase is not initialized. Please call initializeFirebase() first."
     );
   });
 });

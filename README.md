@@ -53,7 +53,7 @@ pnpm add firestore-helper-ts
 
 - ✅ **Type-safe** - full TypeScript support
 - ✅ **Simple API** - intuitive functions for common operations
-- ✅ **Flexible** - support for querying, filtering, and sorting
+- ✅ **Flexible** - support for querying, filtering, sorting, and custom document IDs
 - ✅ **Consistent error handling** - unified result format
 - ✅ **Support for all modern frameworks** - React, Next.js, Vue.js, and more
 - ✅ **Real-time listeners** - subscribe to data changes using Firestore onSnapshot
@@ -91,9 +91,21 @@ const result = await create({
   },
 });
 
-// You get back data including the ID
-const userId = result.data?.id;
-console.log(`New user created with ID: ${userId}`);
+// Creates a document with custom ID (e.g., UUID)
+const resultWithCustomId = await create({
+  path: "users",
+  customId: "123e4567-e89b-12d3-a456-426614174000", // Your custom ID
+  data: {
+    name: "Jane Smith",
+    email: "jane@example.com",
+    age: 28,
+    isActive: true,
+  },
+});
+
+// You get back data including the ID in both cases
+const userId = result.data?.id; // Firestore generated ID
+const customUserId = resultWithCustomId.data?.id; // Your custom ID
 ```
 
 ### 3. Retrieve Data
@@ -670,6 +682,35 @@ const unsubscribe = await update({
 // Stop listening when no longer needed
 unsubscribe();
 ```
+
+### Custom Document IDs
+
+You can use your own document IDs (like UUID) when creating documents:
+
+```typescript
+import { v4 as uuidv4 } from "uuid";
+import { create } from "firestore-helper-ts";
+
+// Create a document with UUID
+const result = await create({
+  path: "users",
+  customId: uuidv4(), // Use UUID as document ID
+  data: {
+    name: "John Doe",
+    email: "john@example.com",
+  },
+});
+
+// The document will be created with your custom ID
+console.log("Created user with custom ID:", result.data?.id);
+```
+
+This is useful when:
+
+- You need to know the document ID before creation
+- You want to use UUIDs or other custom ID formats
+- You need to ensure ID uniqueness across different Firestore instances
+- You're migrating data from another system and want to preserve IDs
 
 ## 🧪 Testing
 

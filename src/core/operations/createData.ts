@@ -4,31 +4,41 @@ import { UpdateOptions, Result } from "../../types";
 import { getData } from "./getData";
 import { listenData } from "./listenData";
 import { handleError, reportError, ValidationError } from "../../errors";
+import { joinPath } from "../../utils/formatters";
 
 /**
- * Creates a new document in Firestore with an automatically generated ID
+ * Creates a new document in Firestore with either an automatically generated ID or a custom ID
  *
  * @template T - Type of the document data
- * @param {Omit<UpdateOptions, "docId">} options - Options for creating the document
+ * @param {Omit<UpdateOptions, "docId"> & { customId?: string }} options - Options for creating the document
  * @param {string} options.path - Path to the collection where the document will be created
  * @param {Record<string, any>} options.data - Data to store in the document
+ * @param {string} [options.customId] - Optional custom ID for the document (if not provided, Firestore will generate one)
  * @param {boolean} [options.silent=false] - If true, the function will not return any data, only the document ID and potential errors (good for use with real-time listeners)
  * @param {boolean} [options.useListener=false] - Whether to return a listener for the document instead of a one-time fetch
  *
  * @returns {Promise<Result<T & { id: string }> | (() => void) | Result<{id: string}>>} Result object containing the created document with its ID, an unsubscribe function if useListener is true, or just Result with ID and error if silent is true
  *
  * @example
- * // Create a new user with one-time data retrieval
+ * // Create a new user with automatically generated ID
  * const result = await createData({
  *   path: 'users',
  *   data: {
  *     name: 'John Doe',
- *     email: 'john@example.com',
- *     isActive: true
+ *     email: 'john@example.com'
  *   }
  * });
  *
- * console.log('Created user with ID:', result.data?.id);
+ * @example
+ * // Create a new user with custom ID (e.g., UUID)
+ * const result = await createData({
+ *   path: 'users',
+ *   customId: '123e4567-e89b-12d3-a456-426614174000',
+ *   data: {
+ *     name: 'John Doe',
+ *     email: 'john@example.com'
+ *   }
+ * });
  *
  * @example
  * // Create in silent mode - good when using with real-time listeners
@@ -41,31 +51,25 @@ import { handleError, reportError, ValidationError } from "../../errors";
  *   silent: true // Only return the ID, not full document data
  * });
  *
- * console.log('Created user with ID:', result.data?.id);
- * // Your existing listener will automatically receive the new document
- *
  * @example
  * // Create a new user with real-time updates
  * const unsubscribe = await createData({
  *   path: 'users',
  *   data: {
  *     name: 'John Doe',
- *     email: 'john@example.com',
- *     isActive: true
+ *     email: 'john@example.com'
  *   },
  *   useListener: true,
  *   onNext: (userData) => {
  *     console.log('User data updated:', userData);
  *   }
  * });
- *
- * // Later, when you no longer need updates:
- * unsubscribe();
  */
 export async function createData<
   T extends Record<string, any> = Record<string, any>
 >(
   options: Omit<UpdateOptions, "docId"> & {
+    customId?: string;
     useListener?: boolean;
     silent?: boolean;
     onNext?: (data: T & { id: string }) => void;
@@ -92,6 +96,7 @@ export async function createData<
   const {
     path,
     data,
+    customId,
     useListener = false,
     silent = false,
     onNext,
@@ -104,8 +109,12 @@ export async function createData<
     // Create a reference to the collection
     const collectionRef = collection(firestore, path);
 
-    // Create a new document with an automatically generated ID
-    const newDocRef = doc(collectionRef);
+    // Create a document reference - either with custom ID or auto-generated
+    const newDocRef = customId
+      ? doc(firestore, joinPath(path, customId))
+      : doc(collectionRef);
+
+    // Set the document data
     await setDoc(newDocRef, data);
 
     const documentId = newDocRef.id;
@@ -137,7 +146,7 @@ export async function createData<
       });
     }
 
-    // Otherwise do a one-time fetch (previous behavior)
+    // Otherwise do a one-time fetch
     const result = await getData<T & { id: string }>({
       path,
       docId: documentId,
