@@ -64,9 +64,9 @@
     "typescript": "^5.8.2"
   },
   "dependencies": {
-    "firebase": "^11.4.0"
+    "firebase": "^11.6.1"
   },
   "peerDependencies": {
-    "firebase": "^11.4.0"
+    "firebase": "^11.6.1"
   }
 }
